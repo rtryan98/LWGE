@@ -1,1 +1,3 @@
 [Bb]uild/*
+thirdparty/d3d12agilitysdk/*
+thirdparty/DirectXShaderCompiler/*

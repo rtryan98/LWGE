@@ -1,17 +1,21 @@
-#if LWGE_TARGET_WINDOWS
+#include <cstdint>
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
-#endif
-#include <cstdint>
+
+#include "LWGE/Window/Window.hpp"
 
 int32_t main(int32_t argc, const char** argv)
 {
+	auto window = lwge::Window(1280, 720, "Hello World");
+	while (window.get_window_data().alive)
+	{
+		window.poll_events();
+	}
 	return 0;
 }
 
-#if LWGE_TARGET_WINDOWS
 int32_t WINAPI WinMain(
 	_In_ HINSTANCE /*hInstance*/,
 	_In_opt_ HINSTANCE /*hPrevInstance*/,
@@ -20,4 +24,3 @@ int32_t WINAPI WinMain(
 {
 	return main(0, nullptr);
 }
-#endif
