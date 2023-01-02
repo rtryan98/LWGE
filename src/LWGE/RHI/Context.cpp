@@ -53,14 +53,16 @@ namespace lwge::rhi
 			return result;
 		}
 
-		struct ContextPimpl
+		struct ContextImpl
 		{
-			ContextPimpl(const Window& window, uint32_t thread_count)
+			ContextImpl(const Window& window, uint32_t thread_count)
 				: thread_count(thread_count),
 				factory(create_dxgi_factory()),
 				adapter(create_adapter(factory.Get())),
 				device(create_device(adapter.Get())),
 				direct_queue(create_command_queue(device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT)),
+				compute_queue(create_command_queue(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE)),
+				copy_queue(create_command_queue(device.Get(), D3D12_COMMAND_LIST_TYPE_COPY)),
 				swapchain(factory.Get(), direct_queue.Get(), window.get_hwnd(), device.Get())
 			{}
 
@@ -70,12 +72,14 @@ namespace lwge::rhi
 			ComPtr<IDXGIAdapter4> adapter;
 			ComPtr<ID3D12Device10> device;
 			ComPtr<ID3D12CommandQueue> direct_queue;
+			ComPtr<ID3D12CommandQueue> compute_queue;
+			ComPtr<ID3D12CommandQueue> copy_queue;
 			Swapchain swapchain;
 		};
-	}
+	} // namespace detail
 
 	Context::Context(const Window& window, uint32_t thread_count)
-		: m_pimpl(new detail::ContextPimpl(window, thread_count))
+		: m_pimpl(new detail::ContextImpl(window, thread_count))
 	{}
 
 	Context::~Context()

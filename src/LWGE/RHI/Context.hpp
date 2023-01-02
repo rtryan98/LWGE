@@ -13,7 +13,9 @@ namespace lwge::rhi
 {
 	namespace detail
 	{
-		struct ContextPimpl;
+		struct ContextImpl;
+
+		constexpr static uint32_t MAX_CONCURRENT_GPU_FRAMES = 2;
 	}
 
 	class Context
@@ -25,6 +27,6 @@ namespace lwge::rhi
 		[[nodiscard]] IDXGISwapChain* get_swapchain() const;
 
 	private:
-		detail::ContextPimpl* m_pimpl;
+		detail::ContextImpl* m_pimpl;
 	};
 }

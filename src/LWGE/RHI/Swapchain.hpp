@@ -1,10 +1,11 @@
 #pragma once
 
+#include <array>
 #include <agilitysdk/d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl.h>
 
-using Microsoft::WRL::ComPtr;
+#include "LWGE/RHI/D3D12Util.hpp"
 
 namespace lwge::rhi
 {
@@ -17,7 +18,13 @@ namespace lwge::rhi
 		IDXGISwapChain* get_dxgi_swapchain() const { return m_swapchain.Get(); }
 
 	private:
+		void get_buffers_and_rtv_descriptors();
+
+	private:
 		ID3D12CommandQueue* m_direct_queue;
+		ID3D12Device* m_device;
 		ComPtr<IDXGISwapChain4> m_swapchain;
+		ComPtr<ID3D12DescriptorHeap> m_rtv_heap;
+		std::array<ComPtr<ID3D12Resource>, detail::MAX_CONCURRENT_GPU_FRAMES> m_buffers;
 	};
 }
