@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 
+#include "LWGE/Window/Input.hpp"
+
 typedef struct HWND__* HWND;
 struct IDXGISwapChain;
 
@@ -19,6 +21,7 @@ namespace lwge
 		uint32_t pos_y;
 		bool alive;
 		bool fullscreen;
+		Input input;
 	};
 
 	class Window

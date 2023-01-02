@@ -6,6 +6,7 @@
 
 #include "LWGE/Window/Window.hpp"
 #include "LWGE/RHI/Context.hpp"
+#include "LWGE/Window/InputCodes.hpp"
 
 int32_t main(int32_t argc, const char** argv)
 {

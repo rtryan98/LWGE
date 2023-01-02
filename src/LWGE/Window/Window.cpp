@@ -129,6 +129,8 @@ namespace lwge
 	{
 		MSG msg = {};
 		ZeroMemory(&msg, sizeof(MSG));
+		m_data.input.m_keys_last_frame = m_data.input.m_keys_current_frame;
+		GetKeyboardState(m_data.input.m_keys_current_frame.data());
 		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
