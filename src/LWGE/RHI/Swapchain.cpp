@@ -12,7 +12,7 @@ namespace lwge::rhi
 		{
 			has_tearing = true;
 		}
-
+		hwnd; device;
 
 	}
 }
