@@ -5,6 +5,7 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 
+#include "LWGE/RHI/Context.hpp"
 #include "LWGE/RHI/D3D12Util.hpp"
 
 namespace lwge::rhi
@@ -15,7 +16,8 @@ namespace lwge::rhi
 		Swapchain(IDXGIFactory7* factory, ID3D12CommandQueue* direct_queue,
 			HWND hwnd, ID3D12Device* device);
 
-		IDXGISwapChain* get_dxgi_swapchain() const { return m_swapchain.Get(); }
+		IDXGISwapChain4* get_dxgi_swapchain() const { return m_swapchain.Get(); }
+		void resize(uint32_t width, uint32_t height);
 
 	private:
 		void get_buffers_and_rtv_descriptors();

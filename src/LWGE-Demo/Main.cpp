@@ -5,10 +5,12 @@
 #include <windows.h>
 
 #include "LWGE/Window/Window.hpp"
+#include "LWGE/RHI/Context.hpp"
 
 int32_t main(int32_t argc, const char** argv)
 {
 	auto window = lwge::Window(1280, 720, "Hello World");
+	auto context = lwge::rhi::Context(window, 1);
 	while (window.get_window_data().alive)
 	{
 		window.poll_events();

@@ -5,6 +5,12 @@
 
 #include <atomic>
 
+extern "C"
+{
+	__declspec(dllexport) extern const uint32_t D3D12SDKVersion = 608;
+	__declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\";
+}
+
 namespace lwge::rhi
 {
 	namespace detail
@@ -84,7 +90,55 @@ namespace lwge::rhi
 
 	Context::~Context()
 	{
+		await_gpu_idle();
 		delete m_pimpl;
+	}
+
+	void Context::start_frame()
+	{
+		HWND hwnd = {};
+		auto dxgi_swapchain = m_pimpl->swapchain.get_dxgi_swapchain();
+		dxgi_swapchain->GetHwnd(&hwnd);
+		uint32_t width, height;
+		RECT rect = {};
+		GetClientRect(hwnd, &rect);
+		width = rect.right - rect.left;
+		height = rect.bottom - rect.top;
+		DXGI_SWAP_CHAIN_DESC1 desc1 = {};
+		dxgi_swapchain->GetDesc1(&desc1);
+		if (width != desc1.Width || height != desc1.Height)
+		{
+			await_gpu_idle();
+			m_pimpl->swapchain.resize(width, height);
+		}
+	}
+
+	DWORD wait_for_fence(ID3D12Fence1* fence, uint64_t target_value, uint32_t timeout)
+	{
+		if (fence->GetCompletedValue() < target_value)
+		{
+			HANDLE event = CreateEvent(NULL, FALSE, FALSE, NULL);
+			throw_if_failed(fence->SetEventOnCompletion(target_value, event));
+			if (!event)
+			{
+				throw std::exception();
+			}
+			return WaitForSingleObject(event, timeout);
+		}
+		return WAIT_FAILED;
+	}
+
+	void Context::await_gpu_idle()
+	{
+		ComPtr<ID3D12Fence1> fence = nullptr;
+		m_pimpl->device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+		uint64_t target_value = 1;
+		m_pimpl->direct_queue->Signal(fence.Get(), target_value);
+		wait_for_fence(fence.Get(), target_value++, INFINITE);
+		m_pimpl->compute_queue->Signal(fence.Get(), target_value);
+		wait_for_fence(fence.Get(), target_value++, INFINITE);
+		m_pimpl->copy_queue->Signal(fence.Get(), target_value);
+		wait_for_fence(fence.Get(), target_value, INFINITE);
 	}
 
 	IDXGISwapChain* Context::get_swapchain() const

@@ -40,6 +40,14 @@ namespace lwge::rhi
 			.NodeMask = 0
 		};
 		m_device->CreateDescriptorHeap(&rtv_desc, IID_PPV_ARGS(&m_rtv_heap));
+
+		get_buffers_and_rtv_descriptors();
+	}
+
+	void Swapchain::resize(uint32_t width, uint32_t height)
+	{
+		m_swapchain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+		get_buffers_and_rtv_descriptors();
 	}
 
 	void Swapchain::get_buffers_and_rtv_descriptors()
@@ -47,6 +55,7 @@ namespace lwge::rhi
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_rtv_heap->GetCPUDescriptorHandleForHeapStart();
 		for (uint32_t i = 0; i < detail::MAX_CONCURRENT_GPU_FRAMES; i++)
 		{
+			m_buffers[i].Reset();
 			throw_if_failed(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i])));
 			m_device->CreateRenderTargetView(m_buffers[i].Get(), nullptr, rtv);
 

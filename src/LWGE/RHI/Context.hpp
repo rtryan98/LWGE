@@ -24,6 +24,11 @@ namespace lwge::rhi
 		Context(const Window& window, uint32_t thread_count);
 		~Context();
 
+		void start_frame();
+		void end_frame();
+
+		void await_gpu_idle();
+
 		[[nodiscard]] IDXGISwapChain* get_swapchain() const;
 
 	private:
