@@ -5,7 +5,7 @@ INCLUDE("scripts/LWGE.cmake")
 PROJECT(LWGE)
 
 SET(LWGE_NAME "LWGE")
-FILE(GLOB_RECURSE LWGE_FILES "LWGE/src/*.cpp" "LWGE/include/*.hpp")
+FILE(GLOB_RECURSE LWGE_FILES "LWGE/src/*.cpp" "LWGE/src/*.hpp" "LWGE/include/*.hpp")
 GROUP_FILE_TREE("${LWGE_FILES}")
 SET(LWGE_DEMO_NAME "LWGE-Demo")
 FILE(GLOB_RECURSE LWGE_DEMO_FILES "LWGE-Demo/src/*.cpp" "LWGE-Demo/include/*.hpp")
