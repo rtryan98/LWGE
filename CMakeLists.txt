@@ -23,7 +23,8 @@ SET(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;Release" CACHE STRING "" FOR
 ADD_LIBRARY(${LWGE_NAME} ${LWGE_FILES})
 TARGET_INCLUDE_DIRECTORIES(${LWGE_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12agilitysdk/)
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/d3d12agilitysdk/
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/concurrentqueue)
 TARGET_LINK_LIBRARIES(${LWGE_NAME}
     d3d12.lib
     dxgi.lib)
