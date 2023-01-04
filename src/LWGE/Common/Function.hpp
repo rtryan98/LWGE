@@ -26,7 +26,7 @@ namespace lwge
 		template<LambdaConcept L>
 		Function(L&& lambda)
 		{
-			static_assert(sizeof(L <= StackSize),
+			static_assert(sizeof(L) <= StackSize,
 				"Overflow behaviour not yet implemented.");
 			new (m_buf) L{ std::move(lambda) };
 			m_func = reinterpret_cast<PfnMember>(&L::operator());

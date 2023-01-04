@@ -3,9 +3,10 @@
 namespace lwge
 {
 	SystemController::SystemController(const SystemControllerDesc& desc)
-		: m_window(desc.window_width, desc.window_height,
+		: m_job_system(desc.job_system_min_threads),
+		m_window(desc.window_width, desc.window_height,
 			desc.window_title, desc.window_min_width, desc.window_min_height),
-		m_graphics_context(m_window, 1)
+		m_graphics_context(m_window, m_job_system.get_worker_thread_cnt())
 	{}
 
 	void SystemController::start_frame()
