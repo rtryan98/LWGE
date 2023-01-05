@@ -51,14 +51,14 @@ namespace lwge::thread
 			 m_workers.push_back(std::jthread([this]() {
 				 tl_current_job = nullptr;
 				 tl_thread_idx = s_thread_idx_counter.fetch_add(1) + 1;
-				 await_counter(&m_running);
+				 await_counter(&m_running, 0);
 				 }));
 		 }
 	}
 
 	void JobSystem::stop()
 	{
-		m_running.store(0, std::memory_order_acq_rel);
+		m_running.store(0);
 	}
 
 	void JobSystem::schedule(Func&& func)
@@ -75,20 +75,19 @@ namespace lwge::thread
 
 	void JobSystem::schedule_and_await(Func&& func)
 	{
-		std::atomic<uint64_t> counter;
+		std::atomic<uint64_t> counter = 1;
 		Job* job = allocate_job(std::forward<Func>(func), &counter, nullptr);
 		schedule(job);
+		await_counter(&counter, 0);
 	}
 
 	void JobSystem::await_children()
 	{
 		Job* job = get_current_job();
-		await_counter(job->counter, 1);
-	}
-
-	void JobSystem::await_counter(std::atomic<uint64_t>* counter)
-	{
-		await_counter(counter, 0);
+		if (job)
+		{
+			await_counter(&job->children, 1);
+		}
 	}
 
 	void JobSystem::schedule(Job* job)
@@ -132,6 +131,7 @@ namespace lwge::thread
 		return new Job(std::forward<Func>(fn), counter, parent);
 	}
 
+	// TODO: arena allocator for jobs.
 	void JobSystem::free_job(Job* job)
 	{
 		delete job;
@@ -146,7 +146,10 @@ namespace lwge::thread
 
 	void JobSystem::finish_job(Job* job)
 	{
-		job->counter->fetch_sub(1);
+		if (job->counter)
+		{
+			job->counter->fetch_sub(1);
+		}
 		finalize_job(job);
 	}
 

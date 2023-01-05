@@ -17,7 +17,12 @@ namespace lwge::thread
 	{
 		Job(Func&& fn, std::atomic<uint64_t>* cnt, Job* prnt)
 			: children(1), parent(prnt), counter(cnt), func(fn)
-		{}
+		{
+			if (parent)
+			{
+				parent->children.fetch_add(1);
+			}
+		}
 
 		std::atomic<uint64_t> children;
 		Job* parent;
@@ -37,11 +42,33 @@ namespace lwge::thread
 		static uint32_t get_worker_thread_cnt() { return s_thread_idx_counter; }
 		static uint32_t get_thread_idx() { return tl_thread_idx; }
 
+		/// @brief Schedules a function.
+		/// @details Pushes a job with the given function into this
+		/// instance's work queue.
 		void schedule(Func&& func);
+
+		/// @brief Schedules a function.
+		/// @details If called from within another function inside the
+		/// job system, this will add the newly scheduled function as
+		/// a child of the currently running job, otherwise works
+		/// equally like `schedule`.
 		void schedule_child(Func&& func);
+
+		/// @brief Schedules a function and awaits *only* this function.
+		/// @details If it's desired to await spawned children,
+		/// `await_children()` should be called at the end of `func`.
 		void schedule_and_await(Func&& func);
+
+		/// @brief Await the spawned children when inside a job.
+		/// @details This function only works when already inside a job.
+		/// Otherwise it will be a no-op. This function will poll for
+		/// other jobs and run those until all children have been executed.
 		void await_children();
-		void await_counter(std::atomic<uint64_t>* counter);
+
+		/// @brief Await until a provided counter hits the given value.
+		/// @details Similarly to `await_children`, this function will keep
+		/// polling for new jobs, although the main difference being that
+		/// the polling will stop as soon as `counter->load()` hits `val`.
 		void await_counter(std::atomic<uint64_t>* counter, uint64_t val);
 
 	private:
