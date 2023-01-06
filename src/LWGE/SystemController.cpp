@@ -9,6 +9,11 @@ namespace lwge
 		m_graphics_context(m_window, m_job_system.get_worker_thread_cnt())
 	{}
 
+	SystemController::~SystemController()
+	{
+		m_job_system.stop();
+	}
+
 	void SystemController::start_frame()
 	{
 		m_window.poll_events();

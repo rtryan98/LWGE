@@ -21,6 +21,12 @@ namespace lwge
 	{
 	public:
 		SystemController(const SystemControllerDesc& desc);
+		~SystemController();
+
+		SystemController(const SystemController& other) = delete;
+		SystemController(SystemController&& other) = delete;
+		SystemController operator=(const SystemController& other) = delete;
+		SystemController operator=(SystemController&& other) = delete;
 
 		void start_frame();
 		void end_frame();

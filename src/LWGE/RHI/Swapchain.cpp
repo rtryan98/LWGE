@@ -1,5 +1,4 @@
 #include "LWGE/RHI/Swapchain.hpp"
-#include "LWGE/RHI/Context.hpp"
 
 namespace lwge::rhi
 {
@@ -21,7 +20,7 @@ namespace lwge::rhi
 			.Stereo = false,
 			.SampleDesc = { .Count = 1, .Quality = 0 },
 			.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-			.BufferCount = detail::MAX_CONCURRENT_GPU_FRAMES,
+			.BufferCount = MAX_CONCURRENT_GPU_FRAMES,
 			.Scaling = DXGI_SCALING_STRETCH,
 			.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
 			.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED,
@@ -35,7 +34,7 @@ namespace lwge::rhi
 
 		D3D12_DESCRIPTOR_HEAP_DESC rtv_desc = {
 			.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-			.NumDescriptors = detail::MAX_CONCURRENT_GPU_FRAMES,
+			.NumDescriptors = MAX_CONCURRENT_GPU_FRAMES,
 			.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
 			.NodeMask = 0
 		};
@@ -53,7 +52,7 @@ namespace lwge::rhi
 	void Swapchain::get_buffers_and_rtv_descriptors()
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_rtv_heap->GetCPUDescriptorHandleForHeapStart();
-		for (uint32_t i = 0; i < detail::MAX_CONCURRENT_GPU_FRAMES; i++)
+		for (uint32_t i = 0; i < MAX_CONCURRENT_GPU_FRAMES; i++)
 		{
 			m_buffers[i].Reset();
 			throw_if_failed(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i])));
