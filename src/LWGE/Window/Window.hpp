@@ -10,6 +10,15 @@ struct IDXGISwapChain;
 
 namespace lwge
 {
+	struct WindowDesc
+	{
+		uint32_t width;
+		uint32_t height;
+		uint32_t min_width = 256;
+		uint32_t min_height = 144;
+		std::string title;
+	};
+
 	struct WindowData
 	{
 		uint32_t width;
@@ -27,9 +36,7 @@ namespace lwge
 	class Window
 	{
 	public:
-		Window(uint32_t width, uint32_t height, const std::string& title);
-		Window(uint32_t width, uint32_t height, const std::string& title,
-			uint32_t min_width, uint32_t min_height);
+		Window(const WindowDesc& desc);
 		~Window();
 
 		void poll_events();

@@ -9,12 +9,7 @@ namespace lwge
 	struct SystemControllerDesc
 	{
 		uint32_t job_system_min_threads;
-
-		uint32_t window_width;
-		uint32_t window_height;
-		uint32_t window_min_width = 256;
-		uint32_t window_min_height = 144;
-		std::string window_title;
+		WindowDesc window_desc;
 	};
 
 	class SystemController

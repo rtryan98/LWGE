@@ -69,21 +69,16 @@ namespace lwge
 		return DefWindowProc(hwnd, msg, wparam, lparam);
 	}
 
-	Window::Window(uint32_t width, uint32_t height, const std::string& title)
-		: Window(width, height, title, 256, 144)
-	{}
-
-	Window::Window(uint32_t width, uint32_t height, const std::string & title,
-		uint32_t min_width, uint32_t min_height)
-		: m_data{ .width = width, .height = height, .title = title,
-			.min_width = min_width, .min_height = min_height },
+	Window::Window(const WindowDesc& desc)
+		: m_data{ .width = desc.width, .height = desc.height, .title = desc.title,
+			.min_width = desc.min_width, .min_height = desc.min_height },
 		m_style{ WS_OVERLAPPEDWINDOW | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX }
 	{
 		RECT wr = {
 			.left = 0,
 			.top = 0,
-			.right = LONG(width),
-			.bottom = LONG(height)
+			.right = LONG(m_data.width),
+			.bottom = LONG(m_data.height)
 		};
 		WNDCLASSEX wc = {
 			.cbSize = sizeof(WNDCLASSEX),

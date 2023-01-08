@@ -11,9 +11,11 @@ int32_t main(int32_t argc, const char** argv)
 {
 	lwge::SystemControllerDesc syscon_desc = {
 		.job_system_min_threads = 8,
-		.window_width = 1080,
-		.window_height = 720,
-		.window_title = "Hello World!"
+		.window_desc = {
+			.width = 1080,
+			.height = 720,
+			.title = "Hello World!"
+		}
 	};
 	auto syscon = lwge::SystemController(syscon_desc);
 	while (syscon.is_running())
