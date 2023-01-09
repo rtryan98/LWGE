@@ -98,7 +98,7 @@ namespace lwge::rhi
 
 	FrameContext* Context::start_frame()
 	{
-		uint64_t frame_number = m_total_frames.load();
+		uint64_t frame_number = m_total_frames.fetch_add(1);
 
 		auto frame = &m_frame_contexts[frame_number % MAX_CONCURRENT_GPU_FRAMES];
 		wait_on_frame_context(frame);
@@ -113,7 +113,6 @@ namespace lwge::rhi
 		auto val = ++frame_context->frame_fence_val;
 		m_direct_queue->Signal(frame_context->direct_queue_fence.Get(), val);
 		m_compute_queue->Signal(frame_context->compute_queue_fence.Get(), val);
-		m_total_frames.fetch_add(1);
 	}
 
 	void Context::await_gpu_idle()
