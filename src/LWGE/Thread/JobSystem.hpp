@@ -82,7 +82,7 @@ namespace lwge::thread
 		void finalize_job(Job* job);
 
 	private:
-		constexpr static int64_t YIELD_TIMING = 50; // 0.005ms
+		constexpr static int64_t YIELD_TIMING = 100; // 0.01ms
 		constexpr static uint64_t SPINS_UNTIL_YIELD = 0x100;
 
 		std::atomic<uint64_t> m_running = 1;
