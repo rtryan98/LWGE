@@ -34,5 +34,6 @@ namespace lwge
 		thread::JobSystem m_job_system;
 		Window m_window;
 		rhi::Context m_graphics_context;
+		rhi::FrameContext* m_current_frame = nullptr;
 	};
 }

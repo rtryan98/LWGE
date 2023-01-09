@@ -16,11 +16,12 @@ namespace lwge
 	void SystemController::start_frame()
 	{
 		m_window.poll_events();
+		m_current_frame = m_graphics_context.start_frame();
 	}
 
 	void SystemController::end_frame()
 	{
-
+		m_graphics_context.end_frame(m_current_frame);
 	}
 
 	bool SystemController::is_running() const
