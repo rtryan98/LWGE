@@ -1,0 +1,1 @@
+MAKE_LWGE_STATIC_LIB("LWGE-RenderDriver")
