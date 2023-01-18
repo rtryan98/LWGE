@@ -6,6 +6,7 @@
 #include "LWGE-RenderDriver/D3D12/D3D12Includes.hpp"
 #include "LWGE-RenderDriver/D3D12/D3D12Swapchain.hpp"
 #include "LWGE-RenderDriver/D3D12/D3D12CommandListRecycler.hpp"
+#include "LWGE-RenderDriver/D3D12/D3D12CommandList.hpp"
 
 #include <algorithm>
 #include <array>
@@ -23,6 +24,7 @@ namespace lwge::rd::d3d12
         {
             D3D12CommandListRecycler direct_queue_recycler;
             D3D12CommandListRecycler compute_queue_recycler;
+            std::vector<D3D12CommandList> command_lists;
         };
 #pragma warning(pop)
         std::vector<ThreadData> thread_data;

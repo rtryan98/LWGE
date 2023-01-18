@@ -11,17 +11,27 @@ namespace lwge::rd::d3d12
         return result;
     }
 
-    D3D12CommandListRecycler::D3D12CommandListRecycler(NonOwningPtr<ID3D12Device> device, D3D12_COMMAND_LIST_TYPE type)
+    D3D12CommandListRecycler::D3D12CommandListRecycler(NonOwningPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type)
         : m_device(device), m_allocator(create_command_allocator(m_device, type)),
         m_type(type), m_recycled(), m_used()
     {}
 
-    NonOwningPtr<D3D12CmdList> D3D12CommandListRecycler::get_or_create_cmd_list() noexcept
+    D3D12CommandListRecycler::~D3D12CommandListRecycler()
     {
-        NonOwningPtr<D3D12CmdList> result = nullptr;
+        m_recycled.insert(m_recycled.end(), m_used.begin(), m_used.end());
+        m_used.clear();
+        for (auto& cmd : m_recycled)
+        {
+            cmd->Release();
+        }
+    }
+
+    NonOwningPtr<D3D12CmdListType> D3D12CommandListRecycler::get_or_create_cmd_list() noexcept
+    {
+        NonOwningPtr<D3D12CmdListType> result = nullptr;
         if (m_recycled.empty())
         {
-            m_device->CreateCommandList(0, m_type, m_allocator.Get(), nullptr, IID_PPV_ARGS(&result));
+            m_device->CreateCommandList1(0, m_type, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&result));
         }
         else
         {

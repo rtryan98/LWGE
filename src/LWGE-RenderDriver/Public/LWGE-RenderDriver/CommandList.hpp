@@ -78,7 +78,7 @@ namespace lwge::rd
     class CopyCommandList
     {
     public:
-        virtual ~CopyCommandList() = 0;
+        virtual ~CopyCommandList() = default;
 
         virtual void begin_recording() noexcept = 0;
         virtual void end_recording() noexcept = 0;
@@ -89,7 +89,7 @@ namespace lwge::rd
     class ComputeCommandList : public virtual CopyCommandList
     {
     public:
-        virtual ~ComputeCommandList() = 0;
+        virtual ~ComputeCommandList() = default;
 
         virtual void dispatch(uint32_t x, uint32_t y, uint32_t z) noexcept = 0;
         virtual void dispatch_indirect(BufferHandle arg_buf, uint64_t arg_offset) noexcept = 0;
@@ -100,7 +100,7 @@ namespace lwge::rd
     class GraphicsCommandList : public virtual ComputeCommandList
     {
     public:
-        virtual ~GraphicsCommandList() = 0;
+        virtual ~GraphicsCommandList() = default;
 
         virtual void begin_render_pass() noexcept = 0;
         virtual void end_render_pass() noexcept = 0;

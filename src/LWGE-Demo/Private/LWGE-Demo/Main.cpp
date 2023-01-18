@@ -1,4 +1,5 @@
 #include <LWGE-RenderDriver/RenderDriver.hpp>
+#include <LWGE-RenderDriver/CommandList.hpp>
 #include <LWGE-Thread/JobSystem.hpp>
 #include <LWGE-Window/Window.hpp>
 #include <LWGE-Window/InputCodes.hpp>
@@ -30,7 +31,10 @@ int32_t main(int32_t, const char*)
         {
             window.toggle_borderless_fullscreen();
         }
+        auto cmd = rd->get_graphics_cmdlist(frame, js.get_thread_idx());
+        cmd->begin_recording();
 
+        cmd->end_recording();
         rd->end_frame(frame);
     }
     return 0;

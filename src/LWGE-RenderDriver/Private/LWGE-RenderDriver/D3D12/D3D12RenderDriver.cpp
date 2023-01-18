@@ -120,6 +120,11 @@ namespace lwge::rd::d3d12
         auto frame_number = m_frame_counter.fetch_add(1);
         auto frame = &m_frames[frame_number % MAX_CONCURRENT_GPU_FRAMES];
         wait_on_frame_context(frame);
+        for (auto& td : frame->thread_data)
+        {
+            td.direct_queue_recycler.reset();
+            td.compute_queue_recycler.reset();
+        }
         empty_deletion_queues();
         return frame;
     }
@@ -153,14 +158,20 @@ namespace lwge::rd::d3d12
 
     NonOwningPtr<ComputeCommandList> D3D12RenderDriver::get_compute_cmdlist(NonOwningPtr<FrameContext> frame, uint32_t thread_idx) noexcept
     {
-        frame; thread_idx;
-        return NonOwningPtr<ComputeCommandList>();
+        auto& fctd = static_cast<D3D12FrameContext*>(frame)->thread_data[thread_idx];
+        auto& alloc = fctd.compute_queue_recycler;
+        auto cmd = alloc.get_or_create_cmd_list();
+        auto& result = fctd.command_lists.emplace_back(D3D12CommandList(this, alloc.get_allocator(), cmd));
+        return NonOwningPtr<GraphicsCommandList>(&result);
     }
 
     NonOwningPtr<GraphicsCommandList> D3D12RenderDriver::get_graphics_cmdlist(NonOwningPtr<FrameContext> frame, uint32_t thread_idx) noexcept
     {
-        frame; thread_idx;
-        return NonOwningPtr<GraphicsCommandList>();
+        auto& fctd = static_cast<D3D12FrameContext*>(frame)->thread_data[thread_idx];
+        auto& alloc = fctd.direct_queue_recycler;
+        auto cmd = alloc.get_or_create_cmd_list();
+        auto& result = fctd.command_lists.emplace_back(D3D12CommandList(this, alloc.get_allocator(), cmd));
+        return NonOwningPtr<GraphicsCommandList>(&result);
     }
 
     BufferHandle D3D12RenderDriver::create_buffer(const BufferDesc& desc) noexcept

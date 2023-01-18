@@ -93,6 +93,14 @@ namespace lwge::rd::d3d12
         m_cmd->Close();
     }
 
+    void D3D12CommandList::barrier() noexcept
+    {
+    }
+
+    void D3D12CommandList::begin_render_pass() noexcept
+    {
+    }
+
     void D3D12CommandList::end_render_pass() noexcept
     {
         m_cmd->EndRenderPass();
@@ -103,10 +111,25 @@ namespace lwge::rd::d3d12
         m_cmd->Dispatch(x, y, z);
     }
 
+    void D3D12CommandList::dispatch_indirect(BufferHandle arg_buf, uint64_t arg_offset) noexcept
+    {
+        arg_buf, arg_offset;
+    }
+
     void D3D12CommandList::draw(uint32_t vertex_count, uint32_t instance_count,
         uint32_t first_vertex, uint32_t first_instance) noexcept
     {
         m_cmd->DrawInstanced(vertex_count, instance_count, first_vertex, first_instance);
+    }
+
+    void D3D12CommandList::draw_indirect(BufferHandle arg_buf, uint64_t arg_offset, uint32_t draw_count) noexcept
+    {
+        arg_buf, arg_offset, draw_count;
+    }
+
+    void D3D12CommandList::draw_indirect_count(BufferHandle arg_buf, uint64_t arg_offset, BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept
+    {
+        arg_buf, arg_offset, count_buf, count_offset, max_draws;
     }
 
     void D3D12CommandList::draw_indexed(uint32_t index_count, uint32_t instance_count,
@@ -116,9 +139,34 @@ namespace lwge::rd::d3d12
             vertex_offset, first_instance);
     }
 
+    void D3D12CommandList::draw_indexed_indirect(BufferHandle arg_buf, uint64_t arg_offset, uint32_t draw_count) noexcept
+    {
+        arg_buf, arg_offset, draw_count;
+    }
+
+    void D3D12CommandList::draw_indexed_indirect_count(BufferHandle arg_buf, uint64_t arg_offset, BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept
+    {
+        arg_buf, arg_offset, count_buf, count_offset, max_draws;
+    }
+
     void D3D12CommandList::dispatch_mesh(uint32_t x, uint32_t y, uint32_t z) noexcept
     {
         m_cmd->DispatchMesh(x, y, z);
+    }
+
+    void D3D12CommandList::dispatch_mesh_indirect(BufferHandle arg_buf, uint64_t arg_offset, uint32_t draw_count) noexcept
+    {
+        arg_buf, arg_offset, draw_count;
+    }
+
+    void D3D12CommandList::dispatch_mesh_indirect_count(BufferHandle arg_buf, uint64_t arg_offset, BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept
+    {
+        arg_buf, arg_offset, count_buf, count_offset, max_draws;
+    }
+
+    void D3D12CommandList::set_index_buffer(BufferHandle buf, uint64_t offset, IndexType type) noexcept
+    {
+        buf, offset, type;
     }
 }
 

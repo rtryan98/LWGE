@@ -21,6 +21,7 @@ namespace lwge::rd::d3d12
 
         virtual void barrier() noexcept override;
 
+        virtual void begin_render_pass() noexcept override;
         virtual void end_render_pass() noexcept override;
 
         virtual void dispatch(uint32_t x, uint32_t y, uint32_t z) noexcept override;
@@ -46,6 +47,8 @@ namespace lwge::rd::d3d12
             uint32_t draw_count) noexcept override;
         virtual void dispatch_mesh_indirect_count(BufferHandle arg_buf, uint64_t arg_offset,
             BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept override;
+
+        virtual void set_index_buffer(BufferHandle buf, uint64_t offset, IndexType type) noexcept override;
 
     private:
         NonOwningPtr<D3D12RenderDriver> m_driver;
