@@ -35,6 +35,7 @@ namespace lwge::thread
     {
     public:
         JobSystem(uint32_t min_thread_count);
+        ~JobSystem();
 
         void stop();
 

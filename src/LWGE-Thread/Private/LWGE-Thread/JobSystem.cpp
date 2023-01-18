@@ -56,6 +56,11 @@ namespace lwge::thread
          }
     }
 
+    JobSystem::~JobSystem()
+    {
+        stop();
+    }
+
     void JobSystem::stop()
     {
         m_running.store(0);
