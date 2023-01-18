@@ -133,7 +133,7 @@ namespace lwge
         }
     }
 
-    void Window::toggle_borderless_fullscreen(IDXGISwapChain* swapchain)
+    void Window::toggle_borderless_fullscreen()
     {
         if (m_data.fullscreen)
         {
@@ -154,30 +154,18 @@ namespace lwge
                 m_style & ~(WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SYSMENU | WS_THICKFRAME));
 
             RECT fs_rect = {};
-            bool swapchain_output_failed = false;
-            if (swapchain)
-            {
-                ComPtr<IDXGIOutput> output;
-                swapchain_output_failed = swapchain->GetContainingOutput(&output) == S_OK;
-                if (!swapchain_output_failed)
-                {
-                    DXGI_OUTPUT_DESC desc;
-                    swapchain_output_failed = output->GetDesc(&desc) == S_OK;
-                    fs_rect = desc.DesktopCoordinates;
-                }
-            }
-            if (!swapchain || swapchain_output_failed)
-            {
-                DEVMODE dm = {};
-                dm.dmSize = sizeof(DEVMODE);
-                EnumDisplaySettings(nullptr, ENUM_CURRENT_SETTINGS, &dm);
-                fs_rect = {
-                    .left = dm.dmPosition.x,
-                    .top = dm.dmPosition.y,
-                    .right = dm.dmPosition.x + static_cast<LONG>(dm.dmPelsWidth),
-                    .bottom = dm.dmPosition.y + static_cast<LONG>(dm.dmPelsHeight)
-                };
-            }
+            HMONITOR monitor = MonitorFromWindow(m_hwnd, MONITOR_DEFAULTTONEAREST);
+            MONITORINFOEX monitor_info = {};
+            GetMonitorInfo(monitor, &monitor_info);
+            DEVMODE dm = {};
+            dm.dmSize = sizeof(DEVMODE);
+            EnumDisplaySettings(monitor_info.szDevice, ENUM_CURRENT_SETTINGS, &dm);
+            fs_rect = {
+                .left = dm.dmPosition.x,
+                .top = dm.dmPosition.y,
+                .right = dm.dmPosition.x + static_cast<LONG>(dm.dmPelsWidth),
+                .bottom = dm.dmPosition.y + static_cast<LONG>(dm.dmPelsHeight)
+            };
             SetWindowPos(
                 m_hwnd,
                 HWND_TOPMOST,

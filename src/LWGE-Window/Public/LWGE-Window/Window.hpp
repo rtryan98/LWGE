@@ -40,7 +40,7 @@ namespace lwge
         ~Window();
 
         void poll_events();
-        void toggle_borderless_fullscreen(IDXGISwapChain* swapchain);
+        void toggle_borderless_fullscreen();
         [[nodiscard]] HWND get_hwnd() const { return m_hwnd; }
         [[nodiscard]] const WindowData& get_window_data() const { return m_data; }
 

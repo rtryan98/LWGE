@@ -1,13 +1,14 @@
 #include <LWGE-RenderDriver/RenderDriver.hpp>
 #include <LWGE-Thread/JobSystem.hpp>
 #include <LWGE-Window/Window.hpp>
+#include <LWGE-Window/InputCodes.hpp>
 
 int32_t main(int32_t, const char*)
 {
-    auto js = lwge::thread::JobSystem(8);
+    auto js = lwge::thread::JobSystem(15);
     lwge::rd::RenderDriverDesc rd_desc = {
         .api = lwge::rd::RenderDriverAPI::D3D12,
-        .thread_count = 1
+        .thread_count = js.get_worker_thread_cnt() + 1
     };
     lwge::WindowDesc win_desc = {
         .width = 1280,
@@ -24,6 +25,11 @@ int32_t main(int32_t, const char*)
     {
         window.poll_events();
         auto frame = rd->start_frame();
+        const auto& input = window.get_window_data().input;
+        if (input.is_key_clicked(lwge::KeyCode::KeyF11))
+        {
+            window.toggle_borderless_fullscreen();
+        }
 
         rd->end_frame(frame);
     }
