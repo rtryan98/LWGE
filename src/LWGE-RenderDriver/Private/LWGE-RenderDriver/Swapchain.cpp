@@ -6,7 +6,7 @@
 namespace lwge::rd
 {
     std::unique_ptr<Swapchain> Swapchain::create(const SwapchainDesc& desc,
-        RenderDriver* driver, Window* window)
+        NonOwningPtr<RenderDriver> driver, NonOwningPtr<Window> window)
     {
         switch (driver->get_api())
         {
