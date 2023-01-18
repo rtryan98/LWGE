@@ -2,6 +2,8 @@
 #include "LWGE-RenderDriver/CommandList.hpp"
 #include "LWGE-RenderDriver/D3D12/D3D12RenderDriver.hpp"
 
+#include <utility>
+
 namespace lwge::rd
 {
     std::unique_ptr<RenderDriver> RenderDriver::create(const RenderDriverDesc& desc)
@@ -16,17 +18,13 @@ namespace lwge::rd
         case RenderDriverAPI::Mock: {
             return nullptr; // TODO: implement mock
         }
-        default:
-            return nullptr; // TODO: handle crashes / wrong builds.
+        default: {
+            std::unreachable();
+        }
         }
     }
 
     RenderDriver::RenderDriver(const RenderDriverDesc& desc)
         : m_api(desc.api), m_vendor(Vendor::Unknown), m_thread_count(desc.thread_count)
     {}
-
-    CommandListToken RenderDriver::make_cmdlist_token() const noexcept
-    {
-        return CommandListToken();
-    }
 }

@@ -1,6 +1,10 @@
 #if LWGE_BUILD_D3D12
 #include "LWGE-RenderDriver/D3D12/D3D12RenderDriver.hpp"
+#include "LWGE-RenderDriver/D3D12/D3D12Util.hpp"
 #include "LWGE-RenderDriver/Util.hpp"
+
+#include <cmath>
+#include <ranges>
 
 extern "C"
 {
@@ -10,14 +14,6 @@ extern "C"
 
 namespace lwge::rd::d3d12
 {
-    void throw_if_failed(HRESULT hr)
-    {
-        if (FAILED(hr))
-        {
-            throw std::exception();
-        }
-    }
-
     DWORD wait_for_fence(ID3D12Fence1* fence, uint64_t target_value, uint32_t timeout)
     {
         if (fence->GetCompletedValue() < target_value)
@@ -89,11 +85,51 @@ namespace lwge::rd::d3d12
         DXGI_ADAPTER_DESC adapter_desc = {};
         m_adapter->GetDesc(&adapter_desc);
         m_vendor = get_vendor_from_pci_id(adapter_desc.VendorId);
+        for (uint32_t frame = 0; frame < MAX_CONCURRENT_GPU_FRAMES; frame++)
+        {
+            auto& fc = m_frames[frame];
+            fc.fence_val = 0;
+            fc.thread_data.reserve(std::max(m_thread_count, 1u));
+            m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fc.direct_fence));
+            m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fc.compute_fence));
+            for (uint32_t thread = 0; thread < std::max(m_thread_count, 1u); thread++)
+            {
+                fc.thread_data.push_back({
+                    .direct_queue_recycler = D3D12CommandListRecycler(m_device.Get(),
+                        D3D12_COMMAND_LIST_TYPE_DIRECT),
+                    .compute_queue_recycler = D3D12CommandListRecycler(m_device.Get(),
+                        D3D12_COMMAND_LIST_TYPE_COMPUTE)
+                    });
+            }
+        }
     }
 
     D3D12RenderDriver::~D3D12RenderDriver()
     {
         gpu_wait_idle();
+    }
+
+    void wait_on_frame_context(D3D12FrameContext* frame)
+    {
+        wait_for_fence(frame->direct_fence.Get(), frame->fence_val, INFINITE);
+        wait_for_fence(frame->compute_fence.Get(), frame->fence_val, INFINITE);
+    }
+
+    NonOwningPtr<FrameContext> D3D12RenderDriver::start_frame() noexcept
+    {
+        auto frame_number = m_frame_counter.fetch_add(1);
+        auto frame = &m_frames[frame_number % MAX_CONCURRENT_GPU_FRAMES];
+        wait_on_frame_context(frame);
+        empty_deletion_queues();
+        return frame;
+    }
+
+    void D3D12RenderDriver::end_frame(NonOwningPtr<FrameContext> frame) noexcept
+    {
+        auto fc = static_cast<D3D12FrameContext*>(frame);
+        auto val = ++fc->fence_val;
+        m_direct_queue->Signal(fc->direct_fence.Get(), val);
+        m_compute_queue->Signal(fc->compute_fence.Get(), val);
     }
 
     void D3D12RenderDriver::gpu_wait_idle()
@@ -107,6 +143,72 @@ namespace lwge::rd::d3d12
         wait_for_fence(fence.Get(), target_value++, INFINITE);
         m_copy_queue->Signal(fence.Get(), target_value);
         wait_for_fence(fence.Get(), target_value, INFINITE);
+    }
+
+    NonOwningPtr<CopyCommandList> D3D12RenderDriver::get_async_copy_cmdlist(uint32_t thread_idx) noexcept
+    {
+        thread_idx;
+        return NonOwningPtr<CopyCommandList>();
+    }
+
+    NonOwningPtr<ComputeCommandList> D3D12RenderDriver::get_compute_cmdlist(NonOwningPtr<FrameContext> frame, uint32_t thread_idx) noexcept
+    {
+        frame; thread_idx;
+        return NonOwningPtr<ComputeCommandList>();
+    }
+
+    NonOwningPtr<GraphicsCommandList> D3D12RenderDriver::get_graphics_cmdlist(NonOwningPtr<FrameContext> frame, uint32_t thread_idx) noexcept
+    {
+        frame; thread_idx;
+        return NonOwningPtr<GraphicsCommandList>();
+    }
+
+    BufferHandle D3D12RenderDriver::create_buffer(const BufferDesc& desc) noexcept
+    {
+        desc;
+        return BufferHandle();
+    }
+
+    ImageHandle D3D12RenderDriver::create_image(const ImageDesc& desc) noexcept
+    {
+        desc;
+        return ImageHandle();
+    }
+
+    PipelineHandle D3D12RenderDriver::create_pipeline(const GraphicsPipelineDesc& desc) noexcept
+    {
+        desc;
+        return PipelineHandle();
+    }
+
+    PipelineHandle D3D12RenderDriver::create_pipeline(const ComputePipelineDesc& desc) noexcept
+    {
+        desc;
+        return PipelineHandle();
+    }
+
+    void D3D12RenderDriver::destroy_resource_deferred(ComPtr<IDXGISwapChain4> swapchain) noexcept
+    {
+        std::lock_guard<std::mutex> lock(m_swapchain_deletion_queue.mutex);
+        m_swapchain_deletion_queue.queue.push_back({ swapchain, m_frame_counter.load(std::memory_order_relaxed) });
+    }
+
+    void D3D12RenderDriver::empty_deletion_queues() noexcept
+    {
+        uint64_t current_frame = m_frame_counter.load();
+        {
+            std::lock_guard<std::mutex> lock(m_swapchain_deletion_queue.mutex);
+            auto range = std::ranges::remove_if(m_swapchain_deletion_queue.queue,
+                [current_frame](auto& e) noexcept -> bool {
+                    if (current_frame > e.frame)
+                    {
+                        e.element->Release();
+                        return true;
+                    }
+                    return false;
+                });
+            m_swapchain_deletion_queue.queue.erase(range.begin(), range.end());
+        }
     }
 }
 #endif // LWGE_BUILD_D3D12
