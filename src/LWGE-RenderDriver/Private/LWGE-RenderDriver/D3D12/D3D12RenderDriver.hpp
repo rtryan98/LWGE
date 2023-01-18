@@ -74,6 +74,9 @@ namespace lwge::rd::d3d12
         ComPtr<ID3D12CommandQueue> m_direct_queue;
         ComPtr<ID3D12CommandQueue> m_compute_queue;
         ComPtr<ID3D12CommandQueue> m_copy_queue;
+        ComPtr<ID3D12RootSignature> m_rootsig;
+        ComPtr<ID3D12DescriptorHeap> m_cbv_srv_uav_descriptor_heap;
+        ComPtr<ID3D12DescriptorHeap> m_sampler_descriptor_heap;
 
         std::atomic<uint64_t> m_frame_counter;
 

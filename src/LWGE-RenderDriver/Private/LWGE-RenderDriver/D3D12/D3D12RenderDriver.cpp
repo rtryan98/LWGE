@@ -14,6 +14,9 @@ extern "C"
 
 namespace lwge::rd::d3d12
 {
+    constexpr static uint32_t MAX_CBV_SRV_UAV_DESCRIPTORS = 1'000'000;
+    constexpr static uint32_t MAX_SAMPLER_DESCRIPTORS = 1024;
+
     DWORD wait_for_fence(ID3D12Fence1* fence, uint64_t target_value, uint32_t timeout)
     {
         if (fence->GetCompletedValue() < target_value)
@@ -85,6 +88,45 @@ namespace lwge::rd::d3d12
         DXGI_ADAPTER_DESC adapter_desc = {};
         m_adapter->GetDesc(&adapter_desc);
         m_vendor = get_vendor_from_pci_id(adapter_desc.VendorId);
+
+        D3D12_ROOT_PARAMETER1 rootsig_constants = {
+            .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
+            .Constants = {
+                .ShaderRegister = 0,
+                .RegisterSpace = 0,
+                .Num32BitValues = 4
+            },
+            .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
+        };
+        D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootsig_desc = {
+            .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
+            .Desc_1_1 = {
+                .NumParameters = 1,
+                .pParameters = &rootsig_constants,
+                .NumStaticSamplers = 0,
+                .Flags = D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
+                       | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
+            }
+        };
+        ComPtr<ID3DBlob> rootsig_blob = {};
+        ComPtr<ID3DBlob> rootsig_error = {};
+        D3D12SerializeVersionedRootSignature(&rootsig_desc, &rootsig_blob, &rootsig_error);
+        m_device->CreateRootSignature(0, rootsig_blob->GetBufferPointer(),
+            rootsig_blob->GetBufferSize(), IID_PPV_ARGS(&m_rootsig));
+
+        D3D12_DESCRIPTOR_HEAP_DESC shader_descriptor_heap_desc = {
+            .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+            .NumDescriptors = MAX_CBV_SRV_UAV_DESCRIPTORS,
+            .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+            .NodeMask = 0
+        };
+        m_device->CreateDescriptorHeap(&shader_descriptor_heap_desc,
+            IID_PPV_ARGS(&m_cbv_srv_uav_descriptor_heap));
+        shader_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+        shader_descriptor_heap_desc.NumDescriptors = MAX_SAMPLER_DESCRIPTORS;
+        m_device->CreateDescriptorHeap(&shader_descriptor_heap_desc,
+            IID_PPV_ARGS(&m_sampler_descriptor_heap));
+
         for (uint32_t frame = 0; frame < MAX_CONCURRENT_GPU_FRAMES; frame++)
         {
             auto& fc = m_frames[frame];
