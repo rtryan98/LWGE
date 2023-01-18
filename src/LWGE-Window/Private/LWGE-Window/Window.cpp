@@ -75,8 +75,8 @@ namespace lwge
         m_style{ WS_OVERLAPPEDWINDOW | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX }
     {
         RECT wr = {
-            .left = 0,
-            .top = 0,
+            .left = LONG((GetSystemMetrics(SM_CXSCREEN) - m_data.width) / 2),
+            .top = LONG((GetSystemMetrics(SM_CYSCREEN) - m_data.height) / 2),
             .right = LONG(m_data.width),
             .bottom = LONG(m_data.height)
         };
@@ -100,10 +100,10 @@ namespace lwge
             wc.lpszClassName,
             wc.lpszClassName,
             m_style,
-            0,
-            0,
-            wr.right - wr.left,
-            wr.bottom - wr.top,
+            wr.left,
+            wr.top,
+            wr.right,
+            wr.bottom,
             nullptr,
             nullptr,
             GetModuleHandle(NULL),
