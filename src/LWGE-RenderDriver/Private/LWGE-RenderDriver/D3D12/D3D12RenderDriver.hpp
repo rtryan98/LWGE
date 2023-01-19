@@ -3,6 +3,7 @@
 
 #include "LWGE-RenderDriver/RenderDriver.hpp"
 #include "LWGE-RenderDriver/FrameContext.hpp"
+#include "LWGE-RenderDriver/HandleResourcePool.hpp"
 #include "LWGE-RenderDriver/D3D12/D3D12Includes.hpp"
 #include "LWGE-RenderDriver/D3D12/D3D12Swapchain.hpp"
 #include "LWGE-RenderDriver/D3D12/D3D12CommandListRecycler.hpp"
@@ -16,6 +17,25 @@
 
 namespace lwge::rd::d3d12
 {
+    struct D3D12Buffer
+    {
+        uint32_t srv_idx;
+        uint32_t uav_idx;
+        OwningPtr<ID3D12Resource2> resource;
+    };
+
+    struct D3D12Image
+    {
+        uint32_t srv_idx;
+        uint32_t uav_idx;
+        OwningPtr<ID3D12Resource2> resource;
+    };
+
+    struct D3D12Pipeline
+    {
+
+    };
+
     struct D3D12FrameContext : public FrameContext
     {
 #pragma warning(push)
@@ -94,6 +114,10 @@ namespace lwge::rd::d3d12
         DeletionQueue<ComPtr<IDXGISwapChain4>> m_swapchain_deletion_queue;
 
         std::array<D3D12FrameContext, MAX_CONCURRENT_GPU_FRAMES> m_frames;
+
+        HandleResourcePool<Buffer, D3D12Buffer, 0x80000, true> m_buffer_pool;
+        HandleResourcePool<Image, D3D12Image, 0x80000, true> m_image_pool;
+        HandleResourcePool<Pipeline, D3D12Pipeline, 0x40000, true> m_pipeline_pool;
     };
 }
 #endif // LWGE_BUILD_D3D12
