@@ -149,6 +149,7 @@ namespace lwge::rd::d3d12
     D3D12RenderDriver::~D3D12RenderDriver()
     {
         gpu_wait_idle();
+        empty_deletion_queues(~0ull);
     }
 
     void wait_on_frame_context(D3D12FrameContext* frame)
@@ -167,7 +168,7 @@ namespace lwge::rd::d3d12
             td.direct_queue_recycler.reset();
             td.compute_queue_recycler.reset();
         }
-        empty_deletion_queues();
+        empty_deletion_queues(frame_number);
         return frame;
     }
 
@@ -281,34 +282,36 @@ namespace lwge::rd::d3d12
     void D3D12RenderDriver::destroy_buffer(BufferHandle buffer) noexcept
     {
         std::lock_guard<std::mutex> lock(m_buffer_deletion_queue.mutex);
-        m_buffer_deletion_queue.queue.push_back({ buffer, m_frame_counter.load(std::memory_order_relaxed) });
+        m_buffer_deletion_queue.queue.push_back({ buffer,
+            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES });
     }
 
     void D3D12RenderDriver::destroy_image(ImageHandle image) noexcept
     {
         std::lock_guard<std::mutex> lock(m_image_deletion_queue.mutex);
-        m_image_deletion_queue.queue.push_back({ image, m_frame_counter.load(std::memory_order_relaxed) });
+        m_image_deletion_queue.queue.push_back({ image,
+            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES });
     }
 
     void D3D12RenderDriver::destroy_pipeline(PipelineHandle pipe) noexcept
     {
         std::lock_guard<std::mutex> lock(m_pipeline_deletion_queue.mutex);
-        m_pipeline_deletion_queue.queue.push_back({ pipe, m_frame_counter.load(std::memory_order_relaxed) });
+        m_pipeline_deletion_queue.queue.push_back({ pipe,
+            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES });
     }
 
     void D3D12RenderDriver::destroy_resource_deferred(ComPtr<IDXGISwapChain4> swapchain) noexcept
     {
         std::lock_guard<std::mutex> lock(m_swapchain_deletion_queue.mutex);
-        m_swapchain_deletion_queue.queue.push_back({ swapchain, m_frame_counter.load(std::memory_order_relaxed) });
+        m_swapchain_deletion_queue.queue.push_back({ swapchain,
+            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES });
     }
 
-    void D3D12RenderDriver::empty_deletion_queues() noexcept
+    void D3D12RenderDriver::empty_deletion_queues(uint64_t frame) noexcept
     {
-        uint64_t current_frame = m_frame_counter.load();
-
-        auto create_range = [current_frame](auto& vec) noexcept {
-            return std::ranges::remove_if(vec, [current_frame](auto& e) noexcept {
-                    if (current_frame > e.frame)
+        auto create_range = [frame](auto& vec) noexcept {
+            return std::ranges::remove_if(vec, [frame](auto& e) noexcept {
+                    if (frame > e.frame)
                     {
                         return true;
                     }
@@ -316,10 +319,11 @@ namespace lwge::rd::d3d12
                 });
         };
 
-        auto fill_resource_vector = [](auto& from, auto& to) noexcept {
+        auto fill_resource_vector = [](auto& from, auto& to, auto& pool) mutable noexcept {
             to.reserve(from.size());
             for (auto& f : from)
             {
+                pool[f.element].resource->Release();
                 to.push_back(f.element);
             }
         };
@@ -328,10 +332,9 @@ namespace lwge::rd::d3d12
         {
             Lock lock(m_swapchain_deletion_queue.mutex);
             auto range = std::ranges::remove_if(m_swapchain_deletion_queue.queue,
-                [current_frame](auto& e) noexcept -> bool {
-                    if (current_frame > e.frame)
+                [frame](auto& e) noexcept -> bool {
+                    if (frame > e.frame)
                     {
-                        e.element->Release();
                         return true;
                     }
                     return false;
@@ -345,7 +348,7 @@ namespace lwge::rd::d3d12
             Lock lock(m_buffer_deletion_queue.mutex);
             auto range = create_range(m_buffer_deletion_queue.queue);
             std::vector<BufferHandle> handles_to_destroy;
-            fill_resource_vector(range, handles_to_destroy);
+            fill_resource_vector(range, handles_to_destroy, m_buffer_pool);
             m_buffer_pool.remove_bulk(handles_to_destroy);
             m_buffer_deletion_queue.queue.erase(range.begin(), range.end());
         }
@@ -353,7 +356,7 @@ namespace lwge::rd::d3d12
             Lock lock(m_image_deletion_queue.mutex);
             auto range = create_range(m_image_deletion_queue.queue);
             std::vector<ImageHandle> handles_to_destroy;
-            fill_resource_vector(range, handles_to_destroy);
+            fill_resource_vector(range, handles_to_destroy, m_image_pool);
             m_image_pool.remove_bulk(handles_to_destroy);
             m_image_deletion_queue.queue.erase(range.begin(), range.end());
         }
@@ -361,7 +364,7 @@ namespace lwge::rd::d3d12
             Lock lock(m_pipeline_deletion_queue.mutex);
             auto range = create_range(m_pipeline_deletion_queue.queue);
             std::vector<PipelineHandle> handles_to_destroy;
-            fill_resource_vector(range, handles_to_destroy);
+            fill_resource_vector(range, handles_to_destroy, m_pipeline_pool);
             m_pipeline_pool.remove_bulk(handles_to_destroy);
             m_pipeline_deletion_queue.queue.erase(range.begin(), range.end());
         }

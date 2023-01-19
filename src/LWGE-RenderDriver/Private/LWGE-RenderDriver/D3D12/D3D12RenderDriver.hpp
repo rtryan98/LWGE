@@ -45,7 +45,7 @@ namespace lwge::rd::d3d12
 
     struct D3D12Pipeline
     {
-
+        OwningPtr<ID3D12PipelineState> resource;
     };
 
     struct D3D12FrameContext : public FrameContext
@@ -101,7 +101,7 @@ namespace lwge::rd::d3d12
         void destroy_resource_deferred(ComPtr<IDXGISwapChain4> swapchain) noexcept;
 
     private:
-        void empty_deletion_queues() noexcept;
+        void empty_deletion_queues(uint64_t frame) noexcept;
 
     private:
         ComPtr<IDXGIFactory7> m_factory;
