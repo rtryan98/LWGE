@@ -7,7 +7,7 @@
 
 namespace lwge::rd::d3d12
 {
-    using D3D12CmdListType = ID3D12GraphicsCommandList9;
+    using D3D12CmdListType = ID3D12GraphicsCommandList7;
 
     class D3D12CommandListRecycler
     {

@@ -78,10 +78,9 @@ namespace lwge::rd::d3d12
 
     D3D12CommandList::D3D12CommandList(NonOwningPtr<D3D12RenderDriver> driver,
         NonOwningPtr<ID3D12CommandAllocator> alloc,
-        NonOwningPtr<ID3D12GraphicsCommandList9> cmd)
+        NonOwningPtr<ID3D12GraphicsCommandList7> cmd)
         : m_driver(driver), m_allocator(alloc), m_cmd(cmd)
-    {
-    }
+    {}
 
     void D3D12CommandList::begin_recording() noexcept
     {

@@ -13,7 +13,7 @@ namespace lwge::rd::d3d12
     public:
         D3D12CommandList(NonOwningPtr<D3D12RenderDriver> driver,
             NonOwningPtr<ID3D12CommandAllocator> alloc,
-            NonOwningPtr<ID3D12GraphicsCommandList9> cmd);
+            NonOwningPtr<ID3D12GraphicsCommandList7> cmd);
         virtual ~D3D12CommandList() override = default;
 
         virtual void begin_recording() noexcept override;
@@ -53,7 +53,7 @@ namespace lwge::rd::d3d12
     private:
         NonOwningPtr<D3D12RenderDriver> m_driver;
         NonOwningPtr<ID3D12CommandAllocator> m_allocator;
-        NonOwningPtr<ID3D12GraphicsCommandList9> m_cmd;
+        NonOwningPtr<ID3D12GraphicsCommandList7> m_cmd;
     };
 }
 
