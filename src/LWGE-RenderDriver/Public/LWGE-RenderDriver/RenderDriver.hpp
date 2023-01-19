@@ -14,8 +14,6 @@ namespace lwge::rd
     class ComputeCommandList;
     class GraphicsCommandList;
 
-    constexpr static uint32_t MAX_CONCURRENT_GPU_FRAMES = 2;
-
     enum class RenderDriverAPI : uint32_t
     {
         D3D12 = 0,
