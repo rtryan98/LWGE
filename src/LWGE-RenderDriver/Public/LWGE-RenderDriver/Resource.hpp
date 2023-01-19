@@ -4,9 +4,17 @@
 
 namespace lwge::rd
 {
+    enum class ResourceHeap
+    {
+        Vidmem,
+        CPU,
+        Readback,
+    };
+
     struct BufferDesc
     {
-
+        uint64_t size;
+        ResourceHeap heap;
     };
 
     struct ImageDesc
@@ -14,8 +22,40 @@ namespace lwge::rd
 
     };
 
+    struct Shader
+    {
+        uint64_t size;
+        void* bytecode;
+    };
+
+    enum class PipelineType
+    {
+        Graphics,
+        Compute,
+        MeshShader,
+        RayTracing
+    };
+
     struct GraphicsPipelineDesc
     {
+        PipelineType type;
+        union
+        {
+            struct
+            {
+                Shader vertex;
+                Shader domain;
+                Shader hull;
+                Shader geometry;
+                Shader pixel;
+            } graphics_shaders;
+            struct
+            {
+                Shader amplification;
+                Shader mesh;
+                Shader pixel;
+            } mesh_shaders;
+        };
 
     };
 
@@ -25,14 +65,10 @@ namespace lwge::rd
     };
 
     struct Buffer
-    {
-        BufferDesc desc;
-    };
+    {};
 
     struct Image
-    {
-        ImageDesc desc;
-    };
+    {};
 
     struct Pipeline
     {
@@ -45,15 +81,13 @@ namespace lwge::rd
 
     struct HandleValueType
     {
-        uint32_t api : 4;
-        uint32_t flags : 6;
-        uint32_t gen : 22;
+        uint16_t flags;
+        uint16_t gen;
         uint32_t idx;
 
         bool operator==(HandleValueType other) const noexcept
         {
-            return (api == other.api)
-                && (flags == other.flags)
+            return (flags == other.flags)
                 && (gen == other.gen)
                 && (idx == other.idx);
         }

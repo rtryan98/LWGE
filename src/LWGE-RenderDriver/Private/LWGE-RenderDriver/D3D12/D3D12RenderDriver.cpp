@@ -216,10 +216,48 @@ namespace lwge::rd::d3d12
         return NonOwningPtr<GraphicsCommandList>(&result);
     }
 
+    [[nodiscard]] D3D12_HEAP_TYPE translate_heap_type(ResourceHeap heap) noexcept
+    {
+        switch (heap)
+        {
+        case lwge::rd::ResourceHeap::Vidmem:
+            return D3D12_HEAP_TYPE_DEFAULT;
+        case lwge::rd::ResourceHeap::CPU:
+            return D3D12_HEAP_TYPE_UPLOAD;
+        case lwge::rd::ResourceHeap::Readback:
+            return D3D12_HEAP_TYPE_READBACK;
+        default:
+            std::unreachable();
+        }
+    }
+
     BufferHandle D3D12RenderDriver::create_buffer(const BufferDesc& desc) noexcept
     {
-        desc;
-        return BufferHandle();
+        auto handle = m_buffer_pool.insert(0);
+        auto& buffer = m_buffer_pool[handle];
+        D3D12_HEAP_PROPERTIES heap_props = {
+            .Type = translate_heap_type(desc.heap),
+            .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+            .CreationNodeMask = 0,
+            .VisibleNodeMask = 0
+        };
+        D3D12_RESOURCE_DESC1 resource_desc = {
+            .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+            .Alignment = 0,
+            .Width = desc.size,
+            .Height = 1,
+            .DepthOrArraySize = 1,
+            .MipLevels = 1,
+            .Format = DXGI_FORMAT_UNKNOWN,
+            .SampleDesc = { .Count = 1, .Quality = 0 },
+            .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+            .Flags = D3D12_RESOURCE_FLAG_NONE,
+            .SamplerFeedbackMipRegion = {}
+        };
+        m_device->CreateCommittedResource3(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
+            D3D12_BARRIER_LAYOUT_UNDEFINED, nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&buffer.resource));
+        return handle;
     }
 
     ImageHandle D3D12RenderDriver::create_image(const ImageDesc& desc) noexcept
@@ -249,8 +287,28 @@ namespace lwge::rd::d3d12
     void D3D12RenderDriver::empty_deletion_queues() noexcept
     {
         uint64_t current_frame = m_frame_counter.load();
+
+        auto create_range = [current_frame](auto& vec) noexcept {
+            return std::ranges::remove_if(vec, [current_frame](auto& e) noexcept {
+                    if (current_frame > e.frame)
+                    {
+                        return true;
+                    }
+                    return false;
+                });
+        };
+
+        auto fill_resource_vector = [](auto& from, auto& to) noexcept {
+            to.reserve(from.size());
+            for (auto& f : from)
+            {
+                to.push_back(f.element);
+            }
+        };
+
+        using Lock = std::lock_guard<std::mutex>;
         {
-            std::lock_guard<std::mutex> lock(m_swapchain_deletion_queue.mutex);
+            Lock lock(m_swapchain_deletion_queue.mutex);
             auto range = std::ranges::remove_if(m_swapchain_deletion_queue.queue,
                 [current_frame](auto& e) noexcept -> bool {
                     if (current_frame > e.frame)
@@ -261,6 +319,33 @@ namespace lwge::rd::d3d12
                     return false;
                 });
             m_swapchain_deletion_queue.queue.erase(range.begin(), range.end());
+        }
+        /// Even though in most cases those locks here are a double-lock
+        /// With remove_bulk, it allows an async-worker to create resources
+        /// whilst the deletion queues are getting emptied.
+        {
+            Lock lock(m_buffer_deletion_queue.mutex);
+            auto range = create_range(m_buffer_deletion_queue.queue);
+            std::vector<BufferHandle> handles_to_destroy;
+            fill_resource_vector(range, handles_to_destroy);
+            m_buffer_pool.remove_bulk(handles_to_destroy);
+            m_buffer_deletion_queue.queue.erase(range.begin(), range.end());
+        }
+        {
+            Lock lock(m_image_deletion_queue.mutex);
+            auto range = create_range(m_image_deletion_queue.queue);
+            std::vector<ImageHandle> handles_to_destroy;
+            fill_resource_vector(range, handles_to_destroy);
+            m_image_pool.remove_bulk(handles_to_destroy);
+            m_image_deletion_queue.queue.erase(range.begin(), range.end());
+        }
+        {
+            Lock lock(m_pipeline_deletion_queue.mutex);
+            auto range = create_range(m_pipeline_deletion_queue.queue);
+            std::vector<PipelineHandle> handles_to_destroy;
+            fill_resource_vector(range, handles_to_destroy);
+            m_pipeline_pool.remove_bulk(handles_to_destroy);
+            m_pipeline_deletion_queue.queue.erase(range.begin(), range.end());
         }
     }
 }

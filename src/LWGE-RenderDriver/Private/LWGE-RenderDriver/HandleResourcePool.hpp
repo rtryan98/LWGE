@@ -36,10 +36,10 @@ namespace lwge::rd
                 idx = m_largest_element_count++;
             }
             auto& element = m_data[idx];
-            element.data = {};
-            element.flags = GENERATED_FLAG | flags;
+            element.stored = {};
+            element.flags = uint16_t(GENERATED_FLAG | flags);
             auto handle = HandleType({
-                .flags = GENERATED_FLAG | flags,
+                .flags = uint16_t(GENERATED_FLAG | flags),
                 .gen = element.gen,
                 .idx = idx
                 });
@@ -66,7 +66,7 @@ namespace lwge::rd
             auto& element = m_data[hv.idx];
             element.flags = 0;
             element.gen++;
-            element.data = {};
+            element.stored = {};
             m_head = hv.idx;
         }
 
@@ -102,14 +102,14 @@ namespace lwge::rd
         [[nodiscard]] Storage& operator[](HandleType handle) noexcept
         {
             auto hv = HandleValueType(handle);
-            return m_data[hv.idx];
+            return m_data[hv.idx].stored;
         }
 
         /// @brief Same conditions as operator[].
         [[nodiscard]] const Storage& at(HandleType handle) noexcept
         {
             auto hv = HandleValueType(handle);
-            return m_data.at(hv.idx);
+            return m_data.at(hv.idx).stored;
         }
 
     private:

@@ -17,6 +17,18 @@
 
 namespace lwge::rd::d3d12
 {
+    template<typename T>
+    struct FrameDeletionQueue
+    {
+        mutable std::mutex mutex;
+        struct Resource
+        {
+            T element;
+            uint64_t frame;
+        };
+        std::vector<Resource> queue;
+    };
+
     struct D3D12Buffer
     {
         uint32_t srv_idx;
@@ -99,19 +111,11 @@ namespace lwge::rd::d3d12
         ComPtr<ID3D12DescriptorHeap> m_sampler_descriptor_heap;
 
         std::atomic<uint64_t> m_frame_counter;
+        FrameDeletionQueue<ComPtr<IDXGISwapChain4>> m_swapchain_deletion_queue;
 
-        template<typename T>
-        struct DeletionQueue
-        {
-            std::mutex mutex;
-            struct Resource
-            {
-                T element;
-                uint64_t frame;
-            };
-            std::vector<Resource> queue;
-        };
-        DeletionQueue<ComPtr<IDXGISwapChain4>> m_swapchain_deletion_queue;
+        FrameDeletionQueue<BufferHandle> m_buffer_deletion_queue;
+        FrameDeletionQueue<ImageHandle> m_image_deletion_queue;
+        FrameDeletionQueue<PipelineHandle> m_pipeline_deletion_queue;
 
         std::array<D3D12FrameContext, MAX_CONCURRENT_GPU_FRAMES> m_frames;
 
