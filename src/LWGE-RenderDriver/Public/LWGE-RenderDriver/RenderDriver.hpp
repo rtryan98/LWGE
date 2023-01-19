@@ -59,6 +59,10 @@ namespace lwge::rd
         virtual [[nodiscard]] PipelineHandle create_pipeline(const GraphicsPipelineDesc& desc) noexcept = 0;
         virtual [[nodiscard]] PipelineHandle create_pipeline(const ComputePipelineDesc& desc) noexcept = 0;
 
+        virtual void destroy_buffer(BufferHandle buffer) noexcept = 0;
+        virtual void destroy_image(ImageHandle image) noexcept = 0;
+        virtual void destroy_pipeline(PipelineHandle pipe) noexcept = 0;
+
         [[nodiscard]] RenderDriverAPI get_api() const noexcept { return m_api; }
 
     protected:

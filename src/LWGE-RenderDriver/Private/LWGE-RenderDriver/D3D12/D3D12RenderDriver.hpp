@@ -87,6 +87,10 @@ namespace lwge::rd::d3d12
         virtual [[nodiscard]] PipelineHandle create_pipeline(const GraphicsPipelineDesc& desc) noexcept override;
         virtual [[nodiscard]] PipelineHandle create_pipeline(const ComputePipelineDesc& desc) noexcept override;
 
+        virtual void destroy_buffer(BufferHandle buffer) noexcept override;
+        virtual void destroy_image(ImageHandle image) noexcept override;
+        virtual void destroy_pipeline(PipelineHandle pipe) noexcept override;
+
         [[nodiscard]] NonOwningPtr<ID3D12Device10> get_d3d12device() const noexcept
         { return m_device.Get(); }
         [[nodiscard]] NonOwningPtr<IDXGIFactory7> get_dxgi_factory() const noexcept

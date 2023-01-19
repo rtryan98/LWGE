@@ -278,6 +278,24 @@ namespace lwge::rd::d3d12
         return PipelineHandle();
     }
 
+    void D3D12RenderDriver::destroy_buffer(BufferHandle buffer) noexcept
+    {
+        std::lock_guard<std::mutex> lock(m_buffer_deletion_queue.mutex);
+        m_buffer_deletion_queue.queue.push_back({ buffer, m_frame_counter.load(std::memory_order_relaxed) });
+    }
+
+    void D3D12RenderDriver::destroy_image(ImageHandle image) noexcept
+    {
+        std::lock_guard<std::mutex> lock(m_image_deletion_queue.mutex);
+        m_image_deletion_queue.queue.push_back({ image, m_frame_counter.load(std::memory_order_relaxed) });
+    }
+
+    void D3D12RenderDriver::destroy_pipeline(PipelineHandle pipe) noexcept
+    {
+        std::lock_guard<std::mutex> lock(m_pipeline_deletion_queue.mutex);
+        m_pipeline_deletion_queue.queue.push_back({ pipe, m_frame_counter.load(std::memory_order_relaxed) });
+    }
+
     void D3D12RenderDriver::destroy_resource_deferred(ComPtr<IDXGISwapChain4> swapchain) noexcept
     {
         std::lock_guard<std::mutex> lock(m_swapchain_deletion_queue.mutex);
