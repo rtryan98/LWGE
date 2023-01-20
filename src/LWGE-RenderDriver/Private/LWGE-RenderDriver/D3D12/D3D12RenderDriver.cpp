@@ -283,28 +283,28 @@ namespace lwge::rd::d3d12
     {
         std::lock_guard<std::mutex> lock(m_buffer_deletion_queue.mutex);
         m_buffer_deletion_queue.queue.push_back({ buffer,
-            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES });
+            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES - 1 });
     }
 
     void D3D12RenderDriver::destroy_image(ImageHandle image) noexcept
     {
         std::lock_guard<std::mutex> lock(m_image_deletion_queue.mutex);
         m_image_deletion_queue.queue.push_back({ image,
-            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES });
+            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES - 1});
     }
 
     void D3D12RenderDriver::destroy_pipeline(PipelineHandle pipe) noexcept
     {
         std::lock_guard<std::mutex> lock(m_pipeline_deletion_queue.mutex);
         m_pipeline_deletion_queue.queue.push_back({ pipe,
-            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES });
+            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES - 1});
     }
 
     void D3D12RenderDriver::destroy_resource_deferred(ComPtr<IDXGISwapChain4> swapchain) noexcept
     {
         std::lock_guard<std::mutex> lock(m_swapchain_deletion_queue.mutex);
         m_swapchain_deletion_queue.queue.push_back({ swapchain,
-            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES });
+            m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES - 1 });
     }
 
     void D3D12RenderDriver::empty_deletion_queues(uint64_t frame) noexcept
@@ -329,6 +329,17 @@ namespace lwge::rd::d3d12
         };
 
         using Lock = std::lock_guard<std::mutex>;
+
+        auto delete_resources = [create_range, fill_resource_vector](
+            auto& pool, auto& deletion_queue) mutable {
+            Lock lock(deletion_queue.mutex);
+            auto range = create_range(deletion_queue.queue);
+            std::vector<decltype(decltype(deletion_queue.queue)::value_type::element)> handles_to_destroy;
+            fill_resource_vector(range, handles_to_destroy, pool);
+            pool.remove_bulk(handles_to_destroy);
+            deletion_queue.queue.erase(range.begin(), range.end());
+        };
+
         {
             Lock lock(m_swapchain_deletion_queue.mutex);
             auto range = std::ranges::remove_if(m_swapchain_deletion_queue.queue,
@@ -344,30 +355,9 @@ namespace lwge::rd::d3d12
         /// Even though in most cases those locks here are a double-lock
         /// With remove_bulk, it allows an async-worker to create resources
         /// whilst the deletion queues are getting emptied.
-        {
-            Lock lock(m_buffer_deletion_queue.mutex);
-            auto range = create_range(m_buffer_deletion_queue.queue);
-            std::vector<BufferHandle> handles_to_destroy;
-            fill_resource_vector(range, handles_to_destroy, m_buffer_pool);
-            m_buffer_pool.remove_bulk(handles_to_destroy);
-            m_buffer_deletion_queue.queue.erase(range.begin(), range.end());
-        }
-        {
-            Lock lock(m_image_deletion_queue.mutex);
-            auto range = create_range(m_image_deletion_queue.queue);
-            std::vector<ImageHandle> handles_to_destroy;
-            fill_resource_vector(range, handles_to_destroy, m_image_pool);
-            m_image_pool.remove_bulk(handles_to_destroy);
-            m_image_deletion_queue.queue.erase(range.begin(), range.end());
-        }
-        {
-            Lock lock(m_pipeline_deletion_queue.mutex);
-            auto range = create_range(m_pipeline_deletion_queue.queue);
-            std::vector<PipelineHandle> handles_to_destroy;
-            fill_resource_vector(range, handles_to_destroy, m_pipeline_pool);
-            m_pipeline_pool.remove_bulk(handles_to_destroy);
-            m_pipeline_deletion_queue.queue.erase(range.begin(), range.end());
-        }
+        delete_resources(m_buffer_pool, m_buffer_deletion_queue);
+        delete_resources(m_image_pool, m_image_deletion_queue);
+        delete_resources(m_pipeline_pool, m_pipeline_deletion_queue);
     }
 }
 #endif // LWGE_BUILD_D3D12

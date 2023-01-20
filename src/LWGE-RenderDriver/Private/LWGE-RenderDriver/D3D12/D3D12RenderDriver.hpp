@@ -20,6 +20,8 @@ namespace lwge::rd::d3d12
     template<typename T>
     struct FrameDeletionQueue
     {
+        using value_type = T;
+
         mutable std::mutex mutex;
         struct Resource
         {
