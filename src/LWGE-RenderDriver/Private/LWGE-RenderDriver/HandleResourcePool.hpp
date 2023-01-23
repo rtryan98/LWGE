@@ -9,11 +9,11 @@
 
 namespace lwge::rd
 {
-    template<class ID, typename Storage, std::size_t Size, bool UseMutex>
+    template<class T, std::size_t Size, bool UseMutex>
     class HandleResourcePool
     {
         static_assert(Size < UINT32_MAX);
-        using HandleType = Handle<ID, HandleValueType>;
+        using HandleType = Handle<T, HandleValueType>;
         constexpr static uint16_t GENERATED_FLAG = uint16_t(0x8000);
         constexpr static uint32_t NO_HEAD = ~0u;
 
@@ -101,14 +101,14 @@ namespace lwge::rd
         /// actual handles are destroyed after MAX_CONCURRENT_GPU_FRAMES,
         /// no race condition can appear unless there is a rogue
         /// thread destroying the given handle.
-        [[nodiscard]] Storage& operator[](HandleType handle) noexcept
+        [[nodiscard]] T& operator[](HandleType handle) noexcept
         {
             auto hv = HandleValueType(handle);
             return m_data[hv.idx].stored;
         }
 
         /// @brief Same conditions as operator[].
-        [[nodiscard]] const Storage& at(HandleType handle) noexcept
+        [[nodiscard]] const T& at(HandleType handle) noexcept
         {
             auto hv = HandleValueType(handle);
             return m_data.at(hv.idx).stored;
@@ -122,7 +122,7 @@ namespace lwge::rd
             uint16_t flags;
             uint16_t gen;
             uint32_t next;
-            Storage stored;
+            T stored;
         };
         std::vector<Contained> m_data = {};
     };

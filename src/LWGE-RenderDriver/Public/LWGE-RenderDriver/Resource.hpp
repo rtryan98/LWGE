@@ -1,6 +1,10 @@
 #pragma once
 
 #include <LWGE-Common/Handle.hpp>
+#include <LWGE-Common/Pointer.hpp>
+
+struct ID3D12Resource2;
+struct ID3D12PipelineState;
 
 namespace lwge::rd
 {
@@ -64,22 +68,26 @@ namespace lwge::rd
 
     struct ComputePipelineDesc
     {
-
+        Shader shader;
     };
 
     struct Buffer
-    {};
+    {
+        uint32_t srv_idx;
+        uint32_t uav_idx;
+        OwningPtr<ID3D12Resource2> resource;
+    };
 
     struct Image
-    {};
+    {
+        uint32_t srv_idx;
+        uint32_t uav_idx;
+        OwningPtr<ID3D12Resource2> resource;
+    };
 
     struct Pipeline
     {
-        union
-        {
-            GraphicsPipelineDesc graphics_desc;
-            ComputePipelineDesc compute_desc;
-        };
+        OwningPtr<ID3D12PipelineState> resource;
     };
 
     struct HandleValueType

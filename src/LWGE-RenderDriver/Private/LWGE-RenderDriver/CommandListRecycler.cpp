@@ -1,7 +1,6 @@
-#include "LWGE-RenderDriver/D3D12/D3D12CommandListRecycler.hpp"
-#if LWGE_BUILD_D3D12
+#include "LWGE-RenderDriver/CommandListRecycler.hpp"
 
-namespace lwge::rd::d3d12
+namespace lwge::rd
 {
     ComPtr<ID3D12CommandAllocator> create_command_allocator(
         NonOwningPtr<ID3D12Device> device, D3D12_COMMAND_LIST_TYPE type)
@@ -11,12 +10,12 @@ namespace lwge::rd::d3d12
         return result;
     }
 
-    D3D12CommandListRecycler::D3D12CommandListRecycler(NonOwningPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type)
+    CommandListRecycler::CommandListRecycler(NonOwningPtr<ID3D12Device4> device, D3D12_COMMAND_LIST_TYPE type)
         : m_device(device), m_allocator(create_command_allocator(m_device, type)),
         m_type(type), m_recycled(), m_used()
     {}
 
-    D3D12CommandListRecycler::~D3D12CommandListRecycler()
+    CommandListRecycler::~CommandListRecycler()
     {
         m_recycled.insert(m_recycled.end(), m_used.begin(), m_used.end());
         m_used.clear();
@@ -26,9 +25,9 @@ namespace lwge::rd::d3d12
         }
     }
 
-    NonOwningPtr<D3D12CmdListType> D3D12CommandListRecycler::get_or_create_cmd_list() noexcept
+    NonOwningPtr<CmdListType> CommandListRecycler::get_or_create_cmd_list() noexcept
     {
-        NonOwningPtr<D3D12CmdListType> result = nullptr;
+        NonOwningPtr<CmdListType> result = nullptr;
         if (m_recycled.empty())
         {
             m_device->CreateCommandList1(0, m_type, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&result));
@@ -42,11 +41,10 @@ namespace lwge::rd::d3d12
         return result;
     }
 
-    void D3D12CommandListRecycler::reset() noexcept
+    void CommandListRecycler::reset() noexcept
     {
         m_allocator->Reset();
         m_recycled.insert(m_recycled.end(), m_used.begin(), m_used.end());
         m_used.clear();
     }
 }
-#endif // LWGE_BUILD_D3D12

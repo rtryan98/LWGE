@@ -2,8 +2,14 @@
 
 #include <LWGE-Common/Pointer.hpp>
 
+#include "LWGE-RenderDriver/Constants.hpp"
+
+#include <array>
 #include <cstdint>
-#include <memory>
+
+typedef struct HWND__* HWND;
+struct IDXGISwapChain4;
+struct ID3D12Resource;
 
 namespace lwge
 {
@@ -22,20 +28,23 @@ namespace lwge::rd
     class Swapchain
     {
     public:
-        static [[nodiscard]] std::unique_ptr<Swapchain> create(const SwapchainDesc& desc,
-            NonOwningPtr<RenderDriver> driver, NonOwningPtr<Window> window);
+        Swapchain(const SwapchainDesc& desc, RenderDriver& driver,
+            const Window& window) noexcept;
+        ~Swapchain();
 
-        virtual ~Swapchain() = default;
+        Swapchain(const Swapchain& other) = delete;
+        Swapchain(Swapchain&& other) = delete;
+        Swapchain& operator=(const Swapchain& other) = delete;
+        Swapchain& operator=(Swapchain&& other) = delete;
 
-        virtual void resize(uint32_t width, uint32_t height) noexcept = 0;
-        virtual void present() noexcept = 0;
+        void try_resize() noexcept;
+        void present() noexcept;
 
-    protected:
-        Swapchain(const SwapchainDesc& desc) noexcept
-            : m_vsync_enabled(desc.vsync)
-        {};
-
-    protected:
+    private:
         bool m_vsync_enabled;
+        NonOwningPtr<RenderDriver> m_driver;
+        OwningPtr<IDXGISwapChain4> m_swapchain = {};
+        std::array<OwningPtr<ID3D12Resource>, MAX_CONCURRENT_GPU_FRAMES> m_buffers;
+        HWND m_hwnd = {};
     };
 }

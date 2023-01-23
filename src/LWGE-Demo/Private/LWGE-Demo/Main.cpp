@@ -4,6 +4,8 @@
 #include <LWGE-Window/Window.hpp>
 #include <LWGE-Window/InputCodes.hpp>
 
+#include <memory>
+
 int32_t main(int32_t, const char*)
 {
     auto js = lwge::thread::JobSystem(15);
@@ -16,15 +18,16 @@ int32_t main(int32_t, const char*)
         .title = "LWGE-Demo"
     };
     auto window = lwge::Window(win_desc);
-    auto rd = lwge::rd::RenderDriver::create(rd_desc);
+    auto rd = std::make_unique<lwge::rd::RenderDriver>(rd_desc);
     lwge::rd::SwapchainDesc sc_desc = {
         .vsync = false
     };
-    auto sc = lwge::rd::Swapchain::create(sc_desc, rd.get(), &window);
+    auto sc = std::make_unique<lwge::rd::Swapchain>(sc_desc, *rd, window);
     while (window.get_window_data().alive)
     {
         window.poll_events();
         auto frame = rd->start_frame();
+        sc->try_resize();
         const auto& input = window.get_window_data().input;
         if (input.is_key_clicked(lwge::KeyCode::KeyF11))
         {

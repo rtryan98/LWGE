@@ -6,8 +6,13 @@
 #include <cstdint>
 #include <span>
 
+struct ID3D12CommandAllocator;
+struct ID3D12GraphicsCommandList7;
+
 namespace lwge::rd
 {
+    class RenderDriver;
+
     enum class IndexType
     {
         u16,
@@ -78,54 +83,62 @@ namespace lwge::rd
     class CopyCommandList
     {
     public:
-        virtual ~CopyCommandList() = default;
+        CopyCommandList(ID3D12CommandAllocator& alloc,
+            NonOwningPtr<ID3D12GraphicsCommandList7> cmd);
+        ~CopyCommandList() = default;
 
-        virtual void begin_recording() noexcept = 0;
-        virtual void end_recording() noexcept = 0;
+        void begin_recording() noexcept;
+        void end_recording() noexcept;
 
-        virtual void barrier() noexcept = 0;
+        void barrier() noexcept;
+
+    protected:
+        NonOwningPtr<ID3D12CommandAllocator> m_alloc;
+        NonOwningPtr<ID3D12GraphicsCommandList7> m_cmd;
     };
 
-    class ComputeCommandList : public virtual CopyCommandList
+    class ComputeCommandList : public CopyCommandList
     {
     public:
-        virtual ~ComputeCommandList() = default;
+        using CopyCommandList::CopyCommandList;
+        ~ComputeCommandList() = default;
 
-        virtual void dispatch(uint32_t x, uint32_t y, uint32_t z) noexcept = 0;
-        virtual void dispatch_indirect(BufferHandle arg_buf, uint64_t arg_offset) noexcept = 0;
-        // virtual void dispatch_rays() noexcept = 0;
-        // virtual void dispatch_rays_indirect() noexcept = 0;
+        void dispatch(uint32_t x, uint32_t y, uint32_t z) noexcept;
+        void dispatch_indirect(BufferHandle arg_buf, uint64_t arg_offset) noexcept;
+        // void dispatch_rays() noexcept;
+        // void dispatch_rays_indirect() noexcept;
     };
 
-    class GraphicsCommandList : public virtual ComputeCommandList
+    class GraphicsCommandList : public ComputeCommandList
     {
     public:
-        virtual ~GraphicsCommandList() = default;
+        using ComputeCommandList::ComputeCommandList;
+        ~GraphicsCommandList() = default;
 
-        virtual void begin_render_pass() noexcept = 0;
-        virtual void end_render_pass() noexcept = 0;
+        void begin_render_pass() noexcept;
+        void end_render_pass() noexcept;
 
-        virtual void draw(uint32_t vertex_count, uint32_t instance_count,
-            uint32_t first_vertex = 0, uint32_t first_instance = 0) noexcept = 0;
-        virtual void draw_indirect(BufferHandle arg_buf, uint64_t arg_offset,
-            uint32_t draw_count) noexcept = 0;
-        virtual void draw_indirect_count(BufferHandle arg_buf, uint64_t arg_offset,
-            BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept = 0;
+        void draw(uint32_t vertex_count, uint32_t instance_count,
+            uint32_t first_vertex, uint32_t first_instance) noexcept;
+        void draw_indirect(BufferHandle arg_buf, uint64_t arg_offset,
+            uint32_t draw_count) noexcept;
+        void draw_indirect_count(BufferHandle arg_buf, uint64_t arg_offset,
+            BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept;
 
-        virtual void draw_indexed(uint32_t index_count, uint32_t instance_count,
-            uint32_t first_index = 0, uint32_t first_instance = 0,
-            uint32_t vertex_offset = 0) noexcept = 0;
-        virtual void draw_indexed_indirect(BufferHandle arg_buf, uint64_t arg_offset,
-            uint32_t draw_count) noexcept = 0;
-        virtual void draw_indexed_indirect_count(BufferHandle arg_buf, uint64_t arg_offset,
-            BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept = 0;
+        void draw_indexed(uint32_t index_count, uint32_t instance_count,
+            uint32_t first_index, uint32_t first_instance,
+            uint32_t vertex_offset) noexcept;
+        void draw_indexed_indirect(BufferHandle arg_buf, uint64_t arg_offset,
+            uint32_t draw_count) noexcept;
+        void draw_indexed_indirect_count(BufferHandle arg_buf, uint64_t arg_offset,
+            BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept;
 
-        virtual void dispatch_mesh(uint32_t x, uint32_t y, uint32_t z) noexcept = 0;
-        virtual void dispatch_mesh_indirect(BufferHandle arg_buf, uint64_t arg_offset,
-            uint32_t draw_count) noexcept = 0;
-        virtual void dispatch_mesh_indirect_count(BufferHandle arg_buf, uint64_t arg_offset,
-            BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept = 0;
+        void dispatch_mesh(uint32_t x, uint32_t y, uint32_t z) noexcept;
+        void dispatch_mesh_indirect(BufferHandle arg_buf, uint64_t arg_offset,
+            uint32_t draw_count) noexcept;
+        void dispatch_mesh_indirect_count(BufferHandle arg_buf, uint64_t arg_offset,
+            BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept;
 
-        virtual void set_index_buffer(BufferHandle buf, uint64_t offset, IndexType type) noexcept = 0;
+        void set_index_buffer(BufferHandle buf, uint64_t offset, IndexType type) noexcept;
     };
 }
