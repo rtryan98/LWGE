@@ -144,6 +144,30 @@ namespace lwge::rd::d3d12
                     });
             }
         }
+
+        ComPtr<ID3D12Resource2> resource = nullptr;
+        D3D12_HEAP_PROPERTIES heap_desc = {
+            .Type = D3D12_HEAP_TYPE_DEFAULT,
+            .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+        };
+        D3D12_RESOURCE_DESC1 desca = {
+            .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+            .Alignment = 0,
+            .Width = 16384,
+            .Height = 16384,
+            .DepthOrArraySize = 1,
+            .MipLevels = 1,
+            .Format = DXGI_FORMAT_R16G16B16A16_FLOAT,
+            .SampleDesc = { 1, 0 },
+            .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+            .Flags = D3D12_RESOURCE_FLAG_NONE,
+            .SamplerFeedbackMipRegion = {}
+        };
+        m_device->CreateCommittedResource3(&heap_desc, D3D12_HEAP_FLAG_NONE,
+            &desca, D3D12_BARRIER_LAYOUT_UNDEFINED, nullptr, nullptr,
+            0, nullptr, IID_PPV_ARGS(&resource));
+
     }
 
     D3D12RenderDriver::~D3D12RenderDriver()
@@ -332,6 +356,9 @@ namespace lwge::rd::d3d12
 
         auto delete_resources = [create_range, fill_resource_vector](
             auto& pool, auto& deletion_queue) mutable {
+            /// Even though in most cases those locks here are a double-lock
+            /// With remove_bulk, it allows an async-worker to create resources
+            /// whilst the deletion queues are getting emptied.
             Lock lock(deletion_queue.mutex);
             auto range = create_range(deletion_queue.queue);
             std::vector<decltype(decltype(deletion_queue.queue)::value_type::element)> handles_to_destroy;
@@ -339,25 +366,13 @@ namespace lwge::rd::d3d12
             pool.remove_bulk(handles_to_destroy);
             deletion_queue.queue.erase(range.begin(), range.end());
         };
-
-        {
-            Lock lock(m_swapchain_deletion_queue.mutex);
-            auto range = std::ranges::remove_if(m_swapchain_deletion_queue.queue,
-                [frame](auto& e) noexcept -> bool {
-                    if (frame > e.frame)
-                    {
-                        return true;
-                    }
-                    return false;
-                });
-            m_swapchain_deletion_queue.queue.erase(range.begin(), range.end());
-        }
-        /// Even though in most cases those locks here are a double-lock
-        /// With remove_bulk, it allows an async-worker to create resources
-        /// whilst the deletion queues are getting emptied.
         delete_resources(m_buffer_pool, m_buffer_deletion_queue);
         delete_resources(m_image_pool, m_image_deletion_queue);
         delete_resources(m_pipeline_pool, m_pipeline_deletion_queue);
+
+        Lock lock(m_swapchain_deletion_queue.mutex);
+        auto range = create_range(m_swapchain_deletion_queue.queue);
+        m_swapchain_deletion_queue.queue.erase(range.begin(), range.end());
     }
 }
 #endif // LWGE_BUILD_D3D12

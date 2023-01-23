@@ -19,6 +19,9 @@ namespace lwge::rd
 
     struct ImageDesc
     {
+        uint16_t width;
+        uint16_t height;
+        uint16_t depth;
 
     };
 

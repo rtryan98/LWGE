@@ -41,6 +41,11 @@ namespace lwge::rd::d3d12
             nullptr, nullptr, &sc1));
         throw_if_failed(dxgi_factory->MakeWindowAssociation(m_hwnd, DXGI_MWA_NO_ALT_ENTER));
         throw_if_failed(sc1.As(&m_swapchain));
+
+        for (uint32_t i = 0; i < MAX_CONCURRENT_GPU_FRAMES; i++)
+        {
+            m_swapchain->GetBuffer(i, IID_PPV_ARGS(&m_buffers[i]));
+        }
     }
 
     D3D12Swapchain::~D3D12Swapchain()
@@ -51,6 +56,18 @@ namespace lwge::rd::d3d12
     void D3D12Swapchain::resize(uint32_t width, uint32_t height) noexcept
     {
         m_swapchain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+    }
+
+    void D3D12Swapchain::present() noexcept
+    {
+        if (m_vsync_enabled)
+        {
+            m_swapchain->Present(1, 0);
+        }
+        else
+        {
+            m_swapchain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
+        }
     }
 }
 

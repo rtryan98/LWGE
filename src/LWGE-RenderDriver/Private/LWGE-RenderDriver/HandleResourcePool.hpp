@@ -4,7 +4,6 @@
 
 #include <LWGE-Common/Handle.hpp>
 #include <LWGE-Thread/ConditionalLock.hpp>
-#include <array>
 #include <span>
 #include <vector>
 
@@ -20,7 +19,9 @@ namespace lwge::rd
 
     public:
         HandleResourcePool() noexcept
-        {}
+        {
+            m_data.resize(Size);
+        }
 
         [[nodiscard]] HandleType insert(uint16_t flags) noexcept
         {
@@ -33,7 +34,8 @@ namespace lwge::rd
             }
             else
             {
-                idx = m_largest_element_count++;
+                m_data.push_back({});
+                idx = uint32_t(m_data.size() - 1);
             }
             auto& element = m_data[idx];
             element.stored = {};
@@ -113,7 +115,6 @@ namespace lwge::rd
         }
 
     private:
-        uint32_t m_largest_element_count = 0;
         uint32_t m_head = NO_HEAD;
 
         struct Contained
@@ -123,6 +124,6 @@ namespace lwge::rd
             uint32_t next;
             Storage stored;
         };
-        std::array<Contained, Size> m_data = {};
+        std::vector<Contained> m_data = {};
     };
 }

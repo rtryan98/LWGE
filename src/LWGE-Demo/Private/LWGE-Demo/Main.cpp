@@ -31,10 +31,12 @@ int32_t main(int32_t, const char*)
         {
             window.toggle_borderless_fullscreen();
         }
-        auto cmd = rd->get_graphics_cmdlist(frame, js.get_thread_idx());
+        auto cmd = rd->get_graphics_cmdlist(frame, 0);
+
         cmd->begin_recording();
 
         cmd->end_recording();
+        sc->present();
         rd->end_frame(frame);
     }
     return 0;

@@ -28,6 +28,7 @@ namespace lwge::rd
         virtual ~Swapchain() = default;
 
         virtual void resize(uint32_t width, uint32_t height) noexcept = 0;
+        virtual void present() noexcept = 0;
 
     protected:
         Swapchain(const SwapchainDesc& desc) noexcept
