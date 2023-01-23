@@ -14,14 +14,6 @@ namespace lwge::rd
     class ComputeCommandList;
     class GraphicsCommandList;
 
-    enum class RenderDriverAPI : uint32_t
-    {
-        D3D12 = 0,
-        Vulkan = 1,
-        Headless = 2,
-        Mock = 3,
-    };
-
     enum class Vendor : uint32_t
     {
         AMD,
@@ -32,7 +24,6 @@ namespace lwge::rd
 
     struct RenderDriverDesc
     {
-        RenderDriverAPI api;
         uint32_t thread_count;
     };
 
@@ -63,13 +54,10 @@ namespace lwge::rd
         virtual void destroy_image(ImageHandle image) noexcept = 0;
         virtual void destroy_pipeline(PipelineHandle pipe) noexcept = 0;
 
-        [[nodiscard]] RenderDriverAPI get_api() const noexcept { return m_api; }
-
     protected:
         RenderDriver(const RenderDriverDesc& desc);
 
     protected:
-        RenderDriverAPI m_api;
         Vendor m_vendor;
         const uint32_t m_thread_count;
     };

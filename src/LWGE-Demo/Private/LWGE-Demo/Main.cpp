@@ -8,7 +8,6 @@ int32_t main(int32_t, const char*)
 {
     auto js = lwge::thread::JobSystem(15);
     lwge::rd::RenderDriverDesc rd_desc = {
-        .api = lwge::rd::RenderDriverAPI::D3D12,
         .thread_count = js.get_worker_thread_cnt() + 1
     };
     lwge::WindowDesc win_desc = {

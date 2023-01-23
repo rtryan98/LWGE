@@ -94,11 +94,11 @@ namespace lwge::rd::d3d12
         virtual void destroy_pipeline(PipelineHandle pipe) noexcept override;
 
         [[nodiscard]] NonOwningPtr<ID3D12Device10> get_d3d12device() const noexcept
-        { return m_device.Get(); }
+        { return m_device; }
         [[nodiscard]] NonOwningPtr<IDXGIFactory7> get_dxgi_factory() const noexcept
-        { return m_factory.Get(); }
+        { return m_factory; }
         [[nodiscard]] NonOwningPtr<ID3D12CommandQueue> get_direct_queue() const noexcept
-        { return m_direct_queue.Get(); }
+        { return m_direct_queue; }
 
         void destroy_resource_deferred(ComPtr<IDXGISwapChain4> swapchain) noexcept;
 
@@ -106,15 +106,15 @@ namespace lwge::rd::d3d12
         void empty_deletion_queues(uint64_t frame) noexcept;
 
     private:
-        ComPtr<IDXGIFactory7> m_factory;
-        ComPtr<IDXGIAdapter4> m_adapter;
-        ComPtr<ID3D12Device10> m_device;
-        ComPtr<ID3D12CommandQueue> m_direct_queue;
-        ComPtr<ID3D12CommandQueue> m_compute_queue;
-        ComPtr<ID3D12CommandQueue> m_copy_queue;
-        ComPtr<ID3D12RootSignature> m_rootsig;
-        ComPtr<ID3D12DescriptorHeap> m_cbv_srv_uav_descriptor_heap;
-        ComPtr<ID3D12DescriptorHeap> m_sampler_descriptor_heap;
+        IDXGIFactory7* m_factory;
+        IDXGIAdapter4* m_adapter;
+        ID3D12Device10* m_device;
+        ID3D12CommandQueue* m_direct_queue;
+        ID3D12CommandQueue* m_compute_queue;
+        ID3D12CommandQueue* m_copy_queue;
+        ID3D12RootSignature* m_rootsig;
+        ID3D12DescriptorHeap* m_cbv_srv_uav_descriptor_heap;
+        ID3D12DescriptorHeap* m_sampler_descriptor_heap;
 
         std::atomic<uint64_t> m_frame_counter;
         FrameDeletionQueue<ComPtr<IDXGISwapChain4>> m_swapchain_deletion_queue;

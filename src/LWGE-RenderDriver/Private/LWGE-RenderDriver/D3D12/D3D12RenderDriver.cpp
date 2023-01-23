@@ -32,7 +32,7 @@ namespace lwge::rd::d3d12
         return WAIT_FAILED;
     }
 
-    ComPtr<IDXGIFactory7> create_dxgi_factory()
+    IDXGIFactory7* create_dxgi_factory()
     {
         uint32_t factory_flags = 0u;
 #if LWGE_GRAPHICS_DEBUG
@@ -43,27 +43,27 @@ namespace lwge::rd::d3d12
             debug->EnableDebugLayer();
         }
 #endif
-        ComPtr<IDXGIFactory7> result = nullptr;
+        IDXGIFactory7* result = nullptr;
         throw_if_failed(CreateDXGIFactory2(factory_flags, IID_PPV_ARGS(&result)));
         return result;
     }
 
-    ComPtr<IDXGIAdapter4> create_adapter(IDXGIFactory7* factory)
+    IDXGIAdapter4* create_adapter(IDXGIFactory7* factory)
     {
-        ComPtr<IDXGIAdapter4> result = nullptr;
+        IDXGIAdapter4* result = nullptr;
         throw_if_failed(factory->EnumAdapterByGpuPreference(0,
             DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&result)));
         return result;
     }
 
-    ComPtr<ID3D12Device10> create_device(IDXGIAdapter4* adapter, D3D_FEATURE_LEVEL feature_level)
+    ID3D12Device10* create_device(IDXGIAdapter4* adapter, D3D_FEATURE_LEVEL feature_level)
     {
-        ComPtr<ID3D12Device10> result = nullptr;
+        ID3D12Device10* result = nullptr;
         throw_if_failed(D3D12CreateDevice(adapter, feature_level, IID_PPV_ARGS(&result)));
         return result;
     }
 
-    ComPtr<ID3D12CommandQueue> create_command_queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type)
+    ID3D12CommandQueue* create_command_queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type)
     {
         D3D12_COMMAND_QUEUE_DESC desc = {
             .Type = type,
@@ -71,7 +71,7 @@ namespace lwge::rd::d3d12
             .Flags = D3D12_COMMAND_QUEUE_FLAG_NONE,
             .NodeMask = 0
         };
-        ComPtr<ID3D12CommandQueue> result = nullptr;
+        ID3D12CommandQueue* result = nullptr;
         throw_if_failed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&result)));
         return result;
     }
@@ -79,11 +79,11 @@ namespace lwge::rd::d3d12
     D3D12RenderDriver::D3D12RenderDriver(const RenderDriverDesc& desc)
         : RenderDriver(desc),
         m_factory(create_dxgi_factory()),
-        m_adapter(create_adapter(m_factory.Get())),
-        m_device(create_device(m_adapter.Get(), D3D_FEATURE_LEVEL_12_2)),
-        m_direct_queue(create_command_queue(m_device.Get(), D3D12_COMMAND_LIST_TYPE_DIRECT)),
-        m_compute_queue(create_command_queue(m_device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE)),
-        m_copy_queue(create_command_queue(m_device.Get(), D3D12_COMMAND_LIST_TYPE_COPY))
+        m_adapter(create_adapter(m_factory)),
+        m_device(create_device(m_adapter, D3D_FEATURE_LEVEL_12_2)),
+        m_direct_queue(create_command_queue(m_device, D3D12_COMMAND_LIST_TYPE_DIRECT)),
+        m_compute_queue(create_command_queue(m_device, D3D12_COMMAND_LIST_TYPE_COMPUTE)),
+        m_copy_queue(create_command_queue(m_device, D3D12_COMMAND_LIST_TYPE_COPY))
     {
         DXGI_ADAPTER_DESC adapter_desc = {};
         m_adapter->GetDesc(&adapter_desc);
@@ -137,9 +137,9 @@ namespace lwge::rd::d3d12
             for (uint32_t thread = 0; thread < std::max(m_thread_count, 1u); thread++)
             {
                 fc.thread_data.push_back({
-                    .direct_queue_recycler = D3D12CommandListRecycler(m_device.Get(),
+                    .direct_queue_recycler = D3D12CommandListRecycler(m_device,
                         D3D12_COMMAND_LIST_TYPE_DIRECT),
-                    .compute_queue_recycler = D3D12CommandListRecycler(m_device.Get(),
+                    .compute_queue_recycler = D3D12CommandListRecycler(m_device,
                         D3D12_COMMAND_LIST_TYPE_COMPUTE)
                     });
             }
@@ -174,6 +174,15 @@ namespace lwge::rd::d3d12
     {
         gpu_wait_idle();
         empty_deletion_queues(~0ull);
+        m_sampler_descriptor_heap->Release();
+        m_cbv_srv_uav_descriptor_heap->Release();
+        m_rootsig->Release();
+        m_copy_queue->Release();
+        m_compute_queue->Release();
+        m_direct_queue->Release();
+        m_device->Release();
+        m_adapter->Release();
+        m_factory->Release();
     }
 
     void wait_on_frame_context(D3D12FrameContext* frame)
