@@ -97,6 +97,39 @@ namespace lwge::rd
         NonOwningPtr<ID3D12GraphicsCommandList7> m_cmd;
     };
 
+    struct IndirectDispatchArgs
+    {
+        uint32_t x;
+        uint32_t y;
+        uint32_t z;
+    };
+
+    using GpuVirtualAddress = uint64_t;
+
+    struct GpuVirtualAddressRange
+    {
+        GpuVirtualAddress start_address;
+        uint64_t size;
+    };
+
+    struct GpuVirtualAddressStridedRange
+    {
+        GpuVirtualAddress start_address;
+        uint64_t size;
+        uint64_t stride;
+    };
+
+    struct IndirectDispatchRaysArgs
+    {
+        GpuVirtualAddressRange ray_gen_shader_record;
+        GpuVirtualAddressStridedRange miss_shader_table;
+        GpuVirtualAddressStridedRange hit_group_table;
+        GpuVirtualAddressStridedRange callable_shader_table;
+        uint32_t width;
+        uint32_t height;
+        uint32_t depth;
+    };
+
     class ComputeCommandList : public CopyCommandList
     {
     public:
@@ -107,6 +140,30 @@ namespace lwge::rd
         void dispatch_indirect(BufferHandle arg_buf, uint64_t arg_offset) noexcept;
         // void dispatch_rays() noexcept;
         // void dispatch_rays_indirect() noexcept;
+    };
+
+    struct DrawIndirectArgs
+    {
+        uint32_t vertex_count;
+        uint32_t instance_count;
+        uint32_t first_vertex;
+        uint32_t first_instance;
+    };
+
+    struct DrawIndexedIndirectArgs
+    {
+        uint32_t index_count;
+        uint32_t instance_count;
+        uint32_t first_index;
+        uint32_t vertex_offset;
+        uint32_t first_instance;
+    };
+
+    struct DispatchMeshIndirectArgs
+    {
+        uint32_t x;
+        uint32_t y;
+        uint32_t z;
     };
 
     class GraphicsCommandList : public ComputeCommandList

@@ -8,7 +8,7 @@
 
 int32_t main(int32_t, const char*)
 {
-    auto js = lwge::thread::JobSystem(15);
+    auto js = lwge::thread::JobSystem(1);
     lwge::rd::RenderDriverDesc rd_desc = {
         .thread_count = js.get_worker_thread_cnt() + 1
     };

@@ -15,6 +15,7 @@ struct ID3D12Device10;
 struct ID3D12CommandQueue;
 struct ID3D12RootSignature;
 struct ID3D12DescriptorHeap;
+struct ID3D12CommandSignature;
 struct IDXGISwapChain4;
 
 namespace lwge::rd
@@ -80,6 +81,7 @@ namespace lwge::rd
     private:
 
         void empty_deletion_queues(uint64_t frame) noexcept;
+        void create_indirect_command_signatures() noexcept;
 
     private:
         template<typename T>
@@ -98,6 +100,15 @@ namespace lwge::rd
 
         struct ResourcePools;
 
+        struct Indirect
+        {
+            ID3D12CommandSignature* dispatch_indirect;
+            ID3D12CommandSignature* dispatch_rays_indirect;
+            ID3D12CommandSignature* draw_indirect;
+            ID3D12CommandSignature* draw_indexed_indirect;
+            ID3D12CommandSignature* dispatch_mesh_indirect;
+        };
+
         Vendor m_vendor;
         const uint32_t m_thread_count;
 
@@ -112,12 +123,12 @@ namespace lwge::rd
         ID3D12DescriptorHeap* m_sampler_descriptor_heap;
         ResourcePools* m_pools;
         std::atomic<uint64_t> m_frame_counter;
+        Indirect m_indirect;
 
         FrameDeletionQueue<BufferHandle> m_buffer_deletion_queue;
         FrameDeletionQueue<ImageHandle> m_image_deletion_queue;
         FrameDeletionQueue<PipelineHandle> m_pipeline_deletion_queue;
         FrameDeletionQueue<IDXGISwapChain4*> m_swapchain_deletion_queue;
-
         std::vector<FrameContext> m_frames;
     };
 }

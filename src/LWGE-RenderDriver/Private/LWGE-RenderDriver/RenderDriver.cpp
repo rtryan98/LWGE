@@ -101,6 +101,11 @@ namespace lwge::rd
         gpu_wait_idle();
         empty_deletion_queues(~0ull);
         delete m_pools;
+        m_indirect.dispatch_indirect->Release();
+        m_indirect.dispatch_rays_indirect->Release();
+        m_indirect.draw_indirect->Release();
+        m_indirect.draw_indexed_indirect->Release();
+        m_indirect.dispatch_mesh_indirect->Release();
         m_sampler_descriptor_heap->Release();
         m_cbv_srv_uav_descriptor_heap->Release();
         m_rootsig->Release();
@@ -120,7 +125,8 @@ namespace lwge::rd
         m_direct_queue(create_command_queue(m_device, D3D12_COMMAND_LIST_TYPE_DIRECT)),
         m_compute_queue(create_command_queue(m_device, D3D12_COMMAND_LIST_TYPE_COMPUTE)),
         m_copy_queue(create_command_queue(m_device, D3D12_COMMAND_LIST_TYPE_COPY)),
-        m_pools(new RenderDriver::ResourcePools{})
+        m_pools(new RenderDriver::ResourcePools{}),
+        m_indirect()
     {
         DXGI_ADAPTER_DESC adapter_desc = {};
         m_adapter->GetDesc(&adapter_desc);
@@ -150,6 +156,8 @@ namespace lwge::rd
         D3D12SerializeVersionedRootSignature(&rootsig_desc, &rootsig_blob, &rootsig_error);
         m_device->CreateRootSignature(0, rootsig_blob->GetBufferPointer(),
             rootsig_blob->GetBufferSize(), IID_PPV_ARGS(&m_rootsig));
+
+        create_indirect_command_signatures();
 
         D3D12_DESCRIPTOR_HEAP_DESC shader_descriptor_heap_desc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
@@ -372,5 +380,31 @@ namespace lwge::rd
             e.element->Release();
         }
         m_swapchain_deletion_queue.queue.erase(range.begin(), range.end());
+    }
+
+    void RenderDriver::create_indirect_command_signatures() noexcept
+    {
+        auto create_signature = [this](D3D12_INDIRECT_ARGUMENT_TYPE type, uint32_t size, auto result) {
+            D3D12_INDIRECT_ARGUMENT_DESC arg_desc = {
+                .Type = type
+            };
+            D3D12_COMMAND_SIGNATURE_DESC desc = {
+                .ByteStride = size,
+                .NumArgumentDescs = 1,
+                .pArgumentDescs = &arg_desc,
+                .NodeMask = 0
+            };
+            m_device->CreateCommandSignature(&desc, nullptr, IID_PPV_ARGS(result));
+        };
+        create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH,
+            sizeof(IndirectDispatchArgs), &m_indirect.dispatch_indirect);
+        create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS,
+            sizeof(IndirectDispatchRaysArgs), &m_indirect.dispatch_indirect);
+        create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW,
+            sizeof(DrawIndirectArgs), &m_indirect.draw_indirect);
+        create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED,
+            sizeof(DrawIndexedIndirectArgs), &m_indirect.draw_indexed_indirect);
+        create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH,
+            sizeof(DispatchMeshIndirectArgs), &m_indirect.dispatch_mesh_indirect);
     }
 }
