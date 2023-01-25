@@ -3,6 +3,7 @@
 #include "LWGE-RenderDriver/Resource.hpp"
 
 #include <LWGE-Common/Pointer.hpp>
+#include <array>
 #include <cstdint>
 #include <span>
 
@@ -12,6 +13,7 @@ struct ID3D12GraphicsCommandList7;
 namespace lwge::rd
 {
     class RenderDriver;
+    class Swapchain;
 
     enum class IndexType
     {
@@ -84,8 +86,14 @@ namespace lwge::rd
     {
     public:
         CopyCommandList(ID3D12CommandAllocator& alloc,
-            NonOwningPtr<ID3D12GraphicsCommandList7> cmd);
+            NonOwningPtr<ID3D12GraphicsCommandList7> cmd,
+            NonOwningPtr<RenderDriver> driver);
         ~CopyCommandList() = default;
+
+        [[nodiscard]] NonOwningPtr<ID3D12GraphicsCommandList7> get_d3d12_cmdlist() const noexcept
+        {
+            return m_cmd;
+        }
 
         void begin_recording() noexcept;
         void end_recording() noexcept;
@@ -95,6 +103,7 @@ namespace lwge::rd
     protected:
         NonOwningPtr<ID3D12CommandAllocator> m_alloc;
         NonOwningPtr<ID3D12GraphicsCommandList7> m_cmd;
+        NonOwningPtr<RenderDriver> m_driver;
     };
 
     struct IndirectDispatchArgs
@@ -103,8 +112,6 @@ namespace lwge::rd
         uint32_t y;
         uint32_t z;
     };
-
-    using GpuVirtualAddress = uint64_t;
 
     struct GpuVirtualAddressRange
     {
@@ -172,8 +179,10 @@ namespace lwge::rd
         using ComputeCommandList::ComputeCommandList;
         ~GraphicsCommandList() = default;
 
-        void begin_render_pass() noexcept;
-        void end_render_pass() noexcept;
+        void clear_render_target(Swapchain* swapchain, uint32_t image_index,
+            const std::array<float, 4>& rgba) noexcept;
+        void clear_render_target(ImageHandle image,
+            const std::array<float, 4>& rgba) noexcept;
 
         void draw(uint32_t vertex_count, uint32_t instance_count,
             uint32_t first_vertex, uint32_t first_instance) noexcept;
@@ -196,6 +205,10 @@ namespace lwge::rd
         void dispatch_mesh_indirect_count(BufferHandle arg_buf, uint64_t arg_offset,
             BufferHandle count_buf, uint64_t count_offset, uint32_t max_draws) noexcept;
 
-        void set_index_buffer(BufferHandle buf, uint64_t offset, IndexType type) noexcept;
+        void set_index_buffer(BufferHandle buf, uint32_t size, uint64_t offset, IndexType type) noexcept;
+        void set_render_target(Swapchain* swapchain, uint32_t image_index, ImageHandle depth_stencil) noexcept;
+        void set_render_target(Swapchain* swapchain, uint32_t image_index) noexcept;
+        void set_render_targets(std::span<ImageHandle> color_targets, ImageHandle depth_stencil) noexcept;
+        void set_render_targets(std::span<ImageHandle> color_targets) noexcept;
     };
 }

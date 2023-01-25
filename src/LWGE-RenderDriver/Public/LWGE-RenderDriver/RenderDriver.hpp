@@ -38,6 +38,21 @@ namespace lwge::rd
         uint32_t thread_count;
     };
 
+    struct SwapchainDestroyPayload
+    {
+        OwningPtr<IDXGISwapChain4> swapchain;
+        OwningPtr<ID3D12DescriptorHeap> descriptor_heap;
+    };
+
+    struct Indirect
+    {
+        OwningPtr<ID3D12CommandSignature> dispatch_indirect;
+        OwningPtr<ID3D12CommandSignature> dispatch_rays_indirect;
+        OwningPtr<ID3D12CommandSignature> draw_indirect;
+        OwningPtr<ID3D12CommandSignature> draw_indexed_indirect;
+        OwningPtr<ID3D12CommandSignature> dispatch_mesh_indirect;
+    };
+
     class RenderDriver
     {
     public:
@@ -52,6 +67,9 @@ namespace lwge::rd
         [[nodiscard]] NonOwningPtr<FrameContext> start_frame() noexcept;
         void end_frame(NonOwningPtr<FrameContext> frame) noexcept;
         void gpu_wait_idle();
+        void submit(NonOwningPtr<GraphicsCommandList> cmd) noexcept;
+
+        [[nodiscard]] OwningPtr<Swapchain> create_swapchain(const SwapchainDesc& desc, const Window& window);
 
         [[nodiscard]] NonOwningPtr<CopyCommandList> get_async_copy_cmdlist(
             uint32_t thread_idx) noexcept;
@@ -65,11 +83,15 @@ namespace lwge::rd
         [[nodiscard]] PipelineHandle create_pipeline(const GraphicsPipelineDesc& desc) noexcept;
         [[nodiscard]] PipelineHandle create_pipeline(const ComputePipelineDesc& desc) noexcept;
 
+        [[nodiscard]] const Buffer& get_buffer_info(BufferHandle buf) const noexcept;
+        [[nodiscard]] const Image& get_image_info(ImageHandle img) const noexcept;
+
         void destroy_buffer(BufferHandle buffer) noexcept;
         void destroy_image(ImageHandle image) noexcept;
         void destroy_pipeline(PipelineHandle pipe) noexcept;
 
-        void destroy_resource_deferred(IDXGISwapChain4* swapchain) noexcept;
+        void internal_destroy_resource_deferred(const SwapchainDestroyPayload& payload) noexcept;
+        [[nodiscard]] const Indirect& internal_get_indirect_layouts() const noexcept { return m_indirect; }
 
         [[nodiscard]] NonOwningPtr<ID3D12Device10> get_d3d12device() const noexcept
         { return m_device; }
@@ -100,35 +122,33 @@ namespace lwge::rd
 
         struct ResourcePools;
 
-        struct Indirect
+        template<typename T>
+        union PtrOrIndex
         {
-            ID3D12CommandSignature* dispatch_indirect;
-            ID3D12CommandSignature* dispatch_rays_indirect;
-            ID3D12CommandSignature* draw_indirect;
-            ID3D12CommandSignature* draw_indexed_indirect;
-            ID3D12CommandSignature* dispatch_mesh_indirect;
+            uint64_t idx;
+            NonOwningPtr<T> ptr;
         };
 
         Vendor m_vendor;
         const uint32_t m_thread_count;
 
-        IDXGIFactory7* m_factory;
-        IDXGIAdapter4* m_adapter;
-        ID3D12Device10* m_device;
-        ID3D12CommandQueue* m_direct_queue;
-        ID3D12CommandQueue* m_compute_queue;
-        ID3D12CommandQueue* m_copy_queue;
-        ID3D12RootSignature* m_rootsig;
-        ID3D12DescriptorHeap* m_cbv_srv_uav_descriptor_heap;
-        ID3D12DescriptorHeap* m_sampler_descriptor_heap;
-        ResourcePools* m_pools;
+        OwningPtr<IDXGIFactory7> m_factory;
+        OwningPtr<IDXGIAdapter4> m_adapter;
+        OwningPtr<ID3D12Device10> m_device;
+        OwningPtr<ID3D12CommandQueue> m_direct_queue;
+        OwningPtr<ID3D12CommandQueue> m_compute_queue;
+        OwningPtr<ID3D12CommandQueue> m_copy_queue;
+        OwningPtr<ID3D12RootSignature> m_rootsig;
+        OwningPtr<ID3D12DescriptorHeap> m_cbv_srv_uav_descriptor_heap;
+        OwningPtr<ID3D12DescriptorHeap> m_sampler_descriptor_heap;
+        OwningPtr<ResourcePools> m_pools;
         std::atomic<uint64_t> m_frame_counter;
         Indirect m_indirect;
 
         FrameDeletionQueue<BufferHandle> m_buffer_deletion_queue;
         FrameDeletionQueue<ImageHandle> m_image_deletion_queue;
         FrameDeletionQueue<PipelineHandle> m_pipeline_deletion_queue;
-        FrameDeletionQueue<IDXGISwapChain4*> m_swapchain_deletion_queue;
+        FrameDeletionQueue<SwapchainDestroyPayload> m_swapchain_deletion_queue;
         std::vector<FrameContext> m_frames;
     };
 }

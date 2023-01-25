@@ -36,7 +36,7 @@ namespace lwge
     public:
         Handle() = default;
         explicit Handle(HV hv) : m_value(hv) {}
-        explicit operator HV() const { return m_value; }
+        HV get_underlying_value() const { return m_value; }
 
         friend bool operator==(Handle a, Handle b) { return a.m_value == b.m_value; }
         friend bool operator!=(Handle a, Handle b) { return !(a == b); }

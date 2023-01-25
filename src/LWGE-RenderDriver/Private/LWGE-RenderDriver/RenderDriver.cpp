@@ -226,12 +226,23 @@ namespace lwge::rd
         wait_for_fence(fence.Get(), target_value, INFINITE);
     }
 
+    void RenderDriver::submit(NonOwningPtr<GraphicsCommandList> cmd) noexcept
+    {
+        const auto cmdlist = static_cast<ID3D12CommandList*>(cmd->get_d3d12_cmdlist());
+        m_direct_queue->ExecuteCommandLists(1, &cmdlist);
+    }
+
+    OwningPtr<Swapchain> RenderDriver::create_swapchain(const SwapchainDesc& desc, const Window& window)
+    {
+        return new Swapchain(desc, *this, window);
+    }
+
     NonOwningPtr<ComputeCommandList> RenderDriver::get_compute_cmdlist(NonOwningPtr<FrameContext> frame, uint32_t thread_idx) noexcept
     {
         auto& fctd = frame->thread_data[thread_idx];
         auto& alloc = fctd.compute_queue_recycler;
         auto cmd = alloc.get_or_create_cmd_list();
-        auto& result = fctd.compute_command_lists.emplace_back(ComputeCommandList(*alloc.get_allocator(), cmd));
+        auto& result = fctd.compute_command_lists.emplace_back(ComputeCommandList(*alloc.get_allocator(), cmd, this));
         return NonOwningPtr<GraphicsCommandList>(&result);
     }
 
@@ -240,31 +251,17 @@ namespace lwge::rd
         auto& fctd = frame->thread_data[thread_idx];
         auto& alloc = fctd.direct_queue_recycler;
         auto cmd = alloc.get_or_create_cmd_list();
-        auto& result = fctd.graphics_command_lists.emplace_back(GraphicsCommandList(*alloc.get_allocator(), cmd));
+        auto& result = fctd.graphics_command_lists.emplace_back(GraphicsCommandList(*alloc.get_allocator(), cmd, this));
         return NonOwningPtr<GraphicsCommandList>(&result);
-    }
-
-    [[nodiscard]] D3D12_HEAP_TYPE translate_heap_type(ResourceHeap heap) noexcept
-    {
-        switch (heap)
-        {
-        case ResourceHeap::Vidmem:
-            return D3D12_HEAP_TYPE_DEFAULT;
-        case ResourceHeap::CPU:
-            return D3D12_HEAP_TYPE_UPLOAD;
-        case ResourceHeap::Readback:
-            return D3D12_HEAP_TYPE_READBACK;
-        default:
-            std::unreachable();
-        }
     }
 
     BufferHandle RenderDriver::create_buffer(const BufferDesc& desc) noexcept
     {
         auto handle = m_pools->m_buffer_pool.insert(0);
         auto& buffer = m_pools->m_buffer_pool[handle];
+
         D3D12_HEAP_PROPERTIES heap_props = {
-            .Type = translate_heap_type(desc.heap),
+            .Type = static_cast<D3D12_HEAP_TYPE>(desc.heap),
             .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
             .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
             .CreationNodeMask = 0,
@@ -285,13 +282,21 @@ namespace lwge::rd
         };
         m_device->CreateCommittedResource3(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
             D3D12_BARRIER_LAYOUT_UNDEFINED, nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&buffer.resource));
+        if (desc.heap == ResourceHeap::Vidmem)
+        {
+            buffer.address = buffer.resource->GetGPUVirtualAddress();
+        }
         return handle;
     }
 
     ImageHandle RenderDriver::create_image(const ImageDesc& desc) noexcept
     {
-        desc;
-        return ImageHandle();
+        auto handle = m_pools->m_image_pool.insert(0);
+        auto& image = m_pools->m_image_pool[handle];
+
+        desc, image;
+
+        return handle;
     }
 
     PipelineHandle RenderDriver::create_pipeline(const GraphicsPipelineDesc& desc) noexcept
@@ -304,6 +309,21 @@ namespace lwge::rd
     {
         desc;
         return PipelineHandle();
+    }
+
+    const Buffer& RenderDriver::get_buffer_info(BufferHandle buf) const noexcept
+    {
+        return m_pools->m_buffer_pool.at(buf);
+    }
+
+    const Image& RenderDriver::get_image_info(ImageHandle img) const noexcept
+    {
+        auto hv = img.get_underlying_value();
+        if (hv.flags & IMAGE_HANDLE_SWAPCHAIN)
+        {
+
+        }
+        return m_pools->m_image_pool.at(img);
     }
 
     void RenderDriver::destroy_buffer(BufferHandle buffer) noexcept
@@ -327,10 +347,10 @@ namespace lwge::rd
             m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES - 1 });
     }
 
-    void RenderDriver::destroy_resource_deferred(IDXGISwapChain4* swapchain) noexcept
+    void RenderDriver::internal_destroy_resource_deferred(const SwapchainDestroyPayload& payload) noexcept
     {
         std::lock_guard<std::mutex> lock(m_swapchain_deletion_queue.mutex);
-        m_swapchain_deletion_queue.queue.push_back({ swapchain,
+        m_swapchain_deletion_queue.queue.push_back({ payload,
             m_frame_counter.load(std::memory_order_relaxed) + MAX_CONCURRENT_GPU_FRAMES - 1 });
     }
 
@@ -377,7 +397,8 @@ namespace lwge::rd
         auto range = create_range(m_swapchain_deletion_queue.queue);
         for (auto& e : range)
         {
-            e.element->Release();
+            e.element.descriptor_heap->Release();
+            e.element.swapchain->Release();
         }
         m_swapchain_deletion_queue.queue.erase(range.begin(), range.end());
     }
@@ -399,7 +420,7 @@ namespace lwge::rd
         create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH,
             sizeof(IndirectDispatchArgs), &m_indirect.dispatch_indirect);
         create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS,
-            sizeof(IndirectDispatchRaysArgs), &m_indirect.dispatch_indirect);
+            sizeof(IndirectDispatchRaysArgs), &m_indirect.dispatch_rays_indirect);
         create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW,
             sizeof(DrawIndirectArgs), &m_indirect.draw_indirect);
         create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED,

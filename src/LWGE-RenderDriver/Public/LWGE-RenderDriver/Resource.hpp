@@ -8,11 +8,13 @@ struct ID3D12PipelineState;
 
 namespace lwge::rd
 {
+    using GpuVirtualAddress = uint64_t;
+
     enum class ResourceHeap
     {
-        Vidmem,
-        CPU,
-        Readback,
+        Vidmem = 1,
+        CPU = 2,
+        Readback = 3,
     };
 
     struct BufferDesc
@@ -75,13 +77,18 @@ namespace lwge::rd
     {
         uint32_t srv_idx;
         uint32_t uav_idx;
+        GpuVirtualAddress address;
         OwningPtr<ID3D12Resource2> resource;
     };
 
     struct Image
     {
+        uint16_t width;
+        uint16_t height;
+        uint16_t depth;
         uint32_t srv_idx;
         uint32_t uav_idx;
+        uint64_t cpu_rt_ds_descriptor_address;
         OwningPtr<ID3D12Resource2> resource;
     };
 
@@ -111,6 +118,8 @@ namespace lwge::rd
     using BufferHandle = Handle<Buffer, HandleValueType>;
     using ImageHandle = Handle<Image, HandleValueType>;
     using PipelineHandle = Handle<Pipeline, HandleValueType>;
+
+    constexpr static uint16_t IMAGE_HANDLE_SWAPCHAIN = uint16_t(0x4000);
 
     static_assert(sizeof(BufferHandle) == sizeof(void*));
 }

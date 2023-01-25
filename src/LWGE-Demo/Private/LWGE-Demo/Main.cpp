@@ -22,12 +22,13 @@ int32_t main(int32_t, const char*)
     lwge::rd::SwapchainDesc sc_desc = {
         .vsync = false
     };
-    auto sc = std::make_unique<lwge::rd::Swapchain>(sc_desc, *rd, window);
+    auto sc = std::unique_ptr<lwge::rd::Swapchain>(rd->create_swapchain(sc_desc, window));
     while (window.get_window_data().alive)
     {
         window.poll_events();
         auto frame = rd->start_frame();
         sc->try_resize();
+        auto sc_img_index = sc->acquire_next_image();
         const auto& input = window.get_window_data().input;
         if (input.is_key_clicked(lwge::KeyCode::KeyF11))
         {
@@ -36,8 +37,11 @@ int32_t main(int32_t, const char*)
         auto cmd = rd->get_graphics_cmdlist(frame, 0);
 
         cmd->begin_recording();
-
+        cmd->set_render_target(sc.get(), sc_img_index);
+        std::array<float, 4> rgba = { 1.0f, 0.5f, 0.0f, 1.0f };
+        cmd->clear_render_target(sc.get(), sc_img_index, rgba);
         cmd->end_recording();
+        rd->submit(cmd);
         sc->present();
         rd->end_frame(frame);
     }

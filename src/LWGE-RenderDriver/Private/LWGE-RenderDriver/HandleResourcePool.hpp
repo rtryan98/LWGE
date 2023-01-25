@@ -64,7 +64,7 @@ namespace lwge::rd
         void remove(HandleType handle) noexcept
         {
             thread::ConditionalLock<UseMutex> lock;
-            auto hv = HandleValueType(handle);
+            auto hv = handle.get_underlying_value();
             auto& element = m_data[hv.idx];
             element.flags = 0;
             element.gen++;
@@ -84,7 +84,7 @@ namespace lwge::rd
         /// @brief Same conditions as operator[].
         [[nodiscard]] bool valid(HandleType handle) const noexcept
         {
-            auto hv = HandleValueType(handle);
+            auto hv = handle.get_underlying_value();
             const auto& element =  m_data.at(hv.idx);
             return (element.gen == hv.gen)
                 && (element.flags == hv.flags)
@@ -103,15 +103,15 @@ namespace lwge::rd
         /// thread destroying the given handle.
         [[nodiscard]] T& operator[](HandleType handle) noexcept
         {
-            auto hv = HandleValueType(handle);
+            auto hv = handle.get_underlying_value();
             return m_data[hv.idx].stored;
         }
 
         /// @brief Same conditions as operator[].
-        [[nodiscard]] const T& at(HandleType handle) noexcept
+        [[nodiscard]] const T& at(HandleType handle) const noexcept
         {
-            auto hv = HandleValueType(handle);
-            return m_data.at(hv.idx).stored;
+            auto hv = handle.get_underlying_value();
+            return m_data[hv.idx].stored;
         }
 
     private:
