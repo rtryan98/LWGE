@@ -38,6 +38,10 @@ namespace lwge::rd
 
         [[nodiscard]] uint32_t acquire_next_image() noexcept;
         [[nodiscard]] uint64_t get_image_descriptor_address(uint32_t index) const noexcept;
+        [[nodiscard]] NonOwningPtr<ID3D12Resource> get_buffer(uint32_t index) const noexcept
+        {
+            return m_buffers[index];
+        };
         void try_resize() noexcept;
         void present() noexcept;
 

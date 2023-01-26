@@ -24,59 +24,142 @@ namespace lwge::rd
     enum class SyncStage : uint64_t
     {
         None = 0x0,
-        AllCommands = 0x1,
-        AllGraphics = 0x2,
-        VertexAttributeInput = 0x4,
-        IndexInput = 0x8,
-        VertexInput = VertexAttributeInput | IndexInput,
-        VertexShader = 0x10,
-        PixelShader = 0x20,
-        GeometryShader = 0x40,
-        HullShader = 0x80,
-        DomainShader = 0x100,
-        MeshShader = 0x200,
-        AmplificationShader = 0x400,
-        ColorAttachmentOutput = 0x800,
-        EarlyFragmentTests = 0x1000,
-        LateFragmentTests = 0x2000,
-        ComputeShader = 0x4000,
-        RayTracingShader = 0x8000,
-        Copy = 0x10000,
-        Blit = 0x20000,
-        Resolve = 0x40000,
-        AccelerationStructureBuild = 0x80000,
-        AccelerationStructureCopy = 0x100000,
-        AllTransfer = 0x200000,
-        Indirect = 0x400000,
-        AllShaders = 0x800000,
-        PreRasterShaders = 0x1000000,
-        VideoDecode = 0x2000000,
-        VideoEncode = 0x4000000,
-        VideoProcess = 0x8000000
+        All = 0x1,
+        Draw = 0x2,
+        InputAssembler = 0x4,
+        VertexShading = 0x8,
+        PixelShading = 0x10,
+        DepthStencil = 0x20,
+        RenderTarget = 0x40,
+        ComputeShading = 0x80,
+        RayTracing = 0x100,
+        Copy = 0x200,
+        Resolve = 0x400,
+        Indirect = 0x800,
+        AllShading = 0x1000,
+        NonPixelShading = 0x2000,
+        EmitRayTracingAccelerationStructurePostBuildInfo = 0x4000,
+        ClearUnorderedAccessView = 0x8000,
+        BuildRayTracingAccelerationStructure = 0x800000,
+        CopyRayTracingAccelerationStructure = 0x1000000,
+        Split = 0x80000000
     };
+
+    inline SyncStage operator|(SyncStage a, SyncStage b)
+    {
+        return static_cast<SyncStage>(static_cast<uint64_t>(a), static_cast<uint64_t>(b));
+    }
 
     enum class Access : uint64_t
     {
+        Common = 0,
+        VertexBuffer = 0x1,
+        IndexBuffer = 0x4,
+        RenderTarget = 0x8,
+        UnorderedAccess = 0x10,
+        DepthStencilWrite = 0x20,
+        DepthStencilRead = 0x40,
+        ShaderResource = 0x80,
+        Indirect = 0x200,
+        CopyDest = 0x400,
+        CopySource = 0x800,
+        ResolveDest = 0x1000,
+        ResolveSource = 0x2000,
+        RaytracingAccelerationStructureRead = 0x4000,
+        RaytracingAccelerationStructureWrite = 0x8000,
+        ShadingRateSource = 0x10000,
+        NoAccess = 0x80000000
+    };
 
+    inline Access operator|(Access a, Access b)
+    {
+        return static_cast<Access>(static_cast<uint64_t>(a), static_cast<uint64_t>(b));
+    }
+
+    enum class ImageLayout : uint64_t
+    {
+        Undefined = 0xffffffff,
+        Common = 0,
+        Present = 0,
+        GenericRead = 1,
+        RenderTarget = 2,
+        UnorderedAccess = 3,
+        DepthStencilWrite = 4,
+        DepthStencilRead = 5,
+        ShaderResource = 6,
+        CopySource = 7,
+        CopyDest = 8,
+        ResolveSource = 9,
+        ResolveDest = 10,
+        ShadingRateImage = 11,
+        DirectQueueCommon = 18,
+        DirectQueueGenericRead = 19,
+        DirectQueueUnorderedAccess = 20,
+        DirectQueueShaderResource = 21,
+        DirectQueueCopySource = 22,
+        DirectQueueCopyDest = 23,
+        ComputeQueueCommon = 24,
+        ComputeQueueGenericRead = 25,
+        ComputeQueueUnorderedAccess = 26,
+        ComputeQueueShaderResource = 27,
+        ComputeQueueCopySource = 28,
+        ComputeQueueCopyDest = 29
     };
 
     struct MemoryBarrier
     {
-
+        SyncStage sync_before;
+        SyncStage sync_after;
+        Access access_before;
+        Access access_after;
     };
 
     struct BufferBarrier
     {
+        SyncStage sync_before;
+        SyncStage sync_after;
+        Access access_before;
+        Access access_after;
+        BufferHandle buffer;
+        const uint64_t offset = 0; // const until offset doesn't have to be 0 anymore
+        uint64_t size = ~0ull;
+    };
 
+    struct BarrierSubresourceRange
+    {
+        uint32_t index_or_first_mip_level;
+        uint32_t mip_level_count;
+        uint32_t first_array_slice;
+        uint32_t array_slice_count;
+        uint32_t first_plane;
+        uint32_t plane_count;
     };
 
     struct ImageBarrier
     {
-
+        SyncStage sync_before;
+        SyncStage sync_after;
+        Access access_before;
+        Access access_after;
+        ImageLayout layout_before;
+        ImageLayout layout_after;
+        ImageHandle image;
+        Swapchain* swapchain;
+        uint32_t swapchain_image_index;
+        BarrierSubresourceRange subresources;
+        bool discard;
     };
 
-    struct Barrier
+    enum class BarrierType
     {
+        Memory = 0,
+        Image = 1,
+        Buffer = 2
+    };
+
+    struct BarrierGroup
+    {
+        BarrierType type;
         std::span<MemoryBarrier> memory_barriers;
         std::span<BufferBarrier> buffer_barriers;
         std::span<ImageBarrier> image_barriers;
@@ -98,7 +181,8 @@ namespace lwge::rd
         void begin_recording() noexcept;
         void end_recording() noexcept;
 
-        void barrier() noexcept;
+        void barrier(const BarrierGroup& barrier_group) noexcept;
+        void barrier(std::span<BarrierGroup> barrier_groups) noexcept;
 
     protected:
         NonOwningPtr<ID3D12CommandAllocator> m_alloc;

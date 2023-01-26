@@ -4,6 +4,10 @@
 
 #include <array>
 
+#ifdef MemoryBarrier
+#undef MemoryBarrier
+#endif
+
 namespace lwge::rd
 {
     CopyCommandList::CopyCommandList(ID3D12CommandAllocator& alloc,
@@ -22,8 +26,109 @@ namespace lwge::rd
         m_cmd->Close();
     }
 
-    void CopyCommandList::barrier() noexcept
+    void CopyCommandList::barrier(const BarrierGroup& barrier_group) noexcept
     {
+        auto arr = std::to_array({ barrier_group });
+        barrier({ arr });
+    }
+
+    void CopyCommandList::barrier(std::span<BarrierGroup> barrier_groups) noexcept
+    {
+        std::vector<D3D12_BARRIER_GROUP> groups = {};
+        std::vector<std::vector<D3D12_GLOBAL_BARRIER>> global_barriers = {};
+        std::vector<std::vector<D3D12_TEXTURE_BARRIER>> image_barriers = {};
+        std::vector<std::vector<D3D12_BUFFER_BARRIER>> buffer_barriers = {};
+        groups.reserve(barrier_groups.size());
+        for (const auto& barrier_group : barrier_groups)
+        {
+            auto& barrier = groups.emplace_back();
+            barrier.Type = D3D12_BARRIER_TYPE(barrier_group.type);
+            switch (barrier_group.type)
+            {
+            case BarrierType::Memory:
+            {
+                barrier.NumBarriers = uint32_t(barrier_group.memory_barriers.size());
+                auto& vec = global_barriers.emplace_back();
+                vec.reserve(barrier_group.memory_barriers.size());
+                for (const auto& global_barrier : barrier_group.memory_barriers)
+                {
+                    vec.push_back({
+                        .SyncBefore = D3D12_BARRIER_SYNC(global_barrier.sync_before),
+                        .SyncAfter = D3D12_BARRIER_SYNC(global_barrier.sync_after),
+                        .AccessBefore = D3D12_BARRIER_ACCESS(global_barrier.access_before),
+                        .AccessAfter = D3D12_BARRIER_ACCESS(global_barrier.access_after)
+                        });
+                }
+                barrier.pGlobalBarriers = vec.data();
+                break;
+            }
+            case BarrierType::Image:
+            {
+                barrier.NumBarriers = uint32_t(barrier_group.image_barriers.size());
+                auto& vec = image_barriers.emplace_back();
+                vec.reserve(barrier_group.image_barriers.size());
+                for (const auto& image_barrier : barrier_group.image_barriers)
+                {
+                    ID3D12Resource* resource = nullptr;
+                    if (image_barrier.swapchain)
+                    {
+                        resource = image_barrier.swapchain->get_buffer(image_barrier.swapchain_image_index);
+                    }
+                    else
+                    {
+                        const auto& image_info = m_driver->get_image_info(image_barrier.image);
+                        resource = image_info.resource;
+                    }
+                    vec.push_back({
+                        .SyncBefore = D3D12_BARRIER_SYNC(image_barrier.sync_before),
+                        .SyncAfter = D3D12_BARRIER_SYNC(image_barrier.sync_after),
+                        .AccessBefore = D3D12_BARRIER_ACCESS(image_barrier.access_before),
+                        .AccessAfter = D3D12_BARRIER_ACCESS(image_barrier.access_after),
+                        .LayoutBefore = D3D12_BARRIER_LAYOUT(image_barrier.layout_before),
+                        .LayoutAfter = D3D12_BARRIER_LAYOUT(image_barrier.layout_after),
+                        .pResource = resource,
+                        .Subresources = {
+                            .IndexOrFirstMipLevel = image_barrier.subresources.index_or_first_mip_level,
+                            .NumMipLevels = image_barrier.subresources.mip_level_count,
+                            .FirstArraySlice = image_barrier.subresources.first_array_slice,
+                            .NumArraySlices = image_barrier.subresources.array_slice_count,
+                            .FirstPlane = image_barrier.subresources.first_plane,
+                            .NumPlanes = image_barrier.subresources.plane_count
+                        },
+                        .Flags = image_barrier.discard
+                            ? D3D12_TEXTURE_BARRIER_FLAG_DISCARD
+                            : D3D12_TEXTURE_BARRIER_FLAG_NONE
+                        });
+                }
+                barrier.pTextureBarriers = vec.data();
+                break;
+            }
+            case BarrierType::Buffer:
+            {
+                barrier.NumBarriers = uint32_t(barrier_group.buffer_barriers.size());
+                auto& vec = buffer_barriers.emplace_back();
+                vec.reserve(barrier_group.buffer_barriers.size());
+                for (const auto& buffer_barrier : barrier_group.buffer_barriers)
+                {
+                    const auto& buffer_info = m_driver->get_buffer_info(buffer_barrier.buffer);
+                    vec.push_back({
+                        .SyncBefore = D3D12_BARRIER_SYNC(buffer_barrier.sync_before),
+                        .SyncAfter = D3D12_BARRIER_SYNC(buffer_barrier.sync_after),
+                        .AccessBefore = D3D12_BARRIER_ACCESS(buffer_barrier.access_before),
+                        .AccessAfter = D3D12_BARRIER_ACCESS(buffer_barrier.access_after),
+                        .pResource = buffer_info.resource,
+                        .Offset = buffer_barrier.offset,
+                        .Size = buffer_barrier.size
+                        });
+                }
+                barrier.pBufferBarriers = vec.data();
+                break;
+            }
+            default:
+                std::unreachable();
+            }
+        }
+        m_cmd->Barrier(uint32_t(groups.size()), groups.data());
     }
 
     void ComputeCommandList::dispatch(uint32_t x, uint32_t y, uint32_t z) noexcept
