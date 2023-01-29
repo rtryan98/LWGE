@@ -5,6 +5,7 @@
 #endif
 #include <dxgi.h>
 #include <windows.h>
+#include <dwmapi.h>
 #include <wrl.h>
 
 using Microsoft::WRL::ComPtr;
@@ -48,6 +49,14 @@ namespace lwge
             }
             break;
         }
+        case WM_NCACTIVATE:
+        {
+            break;
+        }
+        case WM_NCCALCSIZE:
+        {
+            break;
+        }
         case WM_SIZE:
         {
             if (data)
@@ -80,6 +89,7 @@ namespace lwge
             .right = LONG(m_data.width),
             .bottom = LONG(m_data.height)
         };
+        AdjustWindowRectEx(&wr, m_style, FALSE, WS_EX_TOOLWINDOW);
         WNDCLASSEX wc = {
             .cbSize = sizeof(WNDCLASSEX),
             .style = 0,

@@ -47,6 +47,6 @@ namespace lwge
     private:
         HWND m_hwnd = nullptr;
         WindowData m_data = {};
-        int32_t m_style = 0;
+        uint32_t m_style = 0;
     };
 }
