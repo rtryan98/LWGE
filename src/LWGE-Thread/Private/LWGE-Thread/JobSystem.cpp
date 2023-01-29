@@ -48,9 +48,10 @@ namespace lwge::thread
          m_workers.reserve(thread_count);
          for (uint32_t i = 0; i < thread_count; i++)
          {
-             m_workers.push_back(std::jthread([this]() {
+             auto thread_idx = s_thread_idx_counter.fetch_add(1) + 1;
+             m_workers.push_back(std::jthread([this, thread_idx]() {
                  tl_current_job = nullptr;
-                 tl_thread_idx = s_thread_idx_counter.fetch_add(1) + 1;
+                 tl_thread_idx = thread_idx;
                  await_counter(&m_running, 0);
                  }));
          }

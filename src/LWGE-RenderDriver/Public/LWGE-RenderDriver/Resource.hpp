@@ -2,6 +2,7 @@
 
 #include <LWGE-Common/Handle.hpp>
 #include <LWGE-Common/Pointer.hpp>
+#include <LWGE-ImageFormat/Format.hpp>
 
 struct ID3D12Resource2;
 struct ID3D12PipelineState;
@@ -28,7 +29,7 @@ namespace lwge::rd
         uint16_t width;
         uint16_t height;
         uint16_t depth;
-
+        Format format;
     };
 
     struct Shader
@@ -86,6 +87,7 @@ namespace lwge::rd
         uint16_t width;
         uint16_t height;
         uint16_t depth;
+        Format format;
         uint32_t srv_idx;
         uint32_t uav_idx;
         uint64_t cpu_rt_ds_descriptor_address;
