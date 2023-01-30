@@ -178,7 +178,7 @@ namespace lwge::rd
             return m_cmd;
         }
 
-        void begin_recording() noexcept;
+        virtual void begin_recording() noexcept;
         void end_recording() noexcept;
 
         void barrier(const BarrierGroup& barrier_group) noexcept;
@@ -226,6 +226,8 @@ namespace lwge::rd
     public:
         using CopyCommandList::CopyCommandList;
         ~ComputeCommandList() = default;
+
+        virtual void begin_recording() noexcept override;
 
         void dispatch(uint32_t x, uint32_t y, uint32_t z) noexcept;
         void dispatch_indirect(BufferHandle arg_buf, uint64_t arg_offset) noexcept;

@@ -131,6 +131,16 @@ namespace lwge::rd
         m_cmd->Barrier(uint32_t(groups.size()), groups.data());
     }
 
+    void ComputeCommandList::begin_recording() noexcept
+    {
+        CopyCommandList::begin_recording();
+        std::array<ID3D12DescriptorHeap*, 2> heaps = {
+            m_driver->get_cbv_srv_uav_descriptor_heap(),
+            m_driver->get_sampler_descriptor_heap()
+        };
+        m_cmd->SetDescriptorHeaps(2, heaps.data());
+    }
+
     void ComputeCommandList::dispatch(uint32_t x, uint32_t y, uint32_t z) noexcept
     {
         m_cmd->Dispatch(x, y, z);

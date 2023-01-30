@@ -153,9 +153,9 @@ namespace lwge::rd
         };
         ComPtr<ID3DBlob> rootsig_blob = {};
         ComPtr<ID3DBlob> rootsig_error = {};
-        D3D12SerializeVersionedRootSignature(&rootsig_desc, &rootsig_blob, &rootsig_error);
-        m_device->CreateRootSignature(0, rootsig_blob->GetBufferPointer(),
-            rootsig_blob->GetBufferSize(), IID_PPV_ARGS(&m_rootsig));
+        throw_if_failed(D3D12SerializeVersionedRootSignature(&rootsig_desc, &rootsig_blob, &rootsig_error));
+        throw_if_failed(m_device->CreateRootSignature(0, rootsig_blob->GetBufferPointer(),
+            rootsig_blob->GetBufferSize(), IID_PPV_ARGS(&m_rootsig)));
 
         create_indirect_command_signatures();
 
@@ -165,13 +165,12 @@ namespace lwge::rd
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
             .NodeMask = 0
         };
-        m_device->CreateDescriptorHeap(&shader_descriptor_heap_desc,
-            IID_PPV_ARGS(&m_cbv_srv_uav_descriptor_heap));
+        throw_if_failed(m_device->CreateDescriptorHeap(&shader_descriptor_heap_desc,
+            IID_PPV_ARGS(&m_cbv_srv_uav_descriptor_heap)));
         shader_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
         shader_descriptor_heap_desc.NumDescriptors = MAX_SAMPLER_DESCRIPTORS;
-        m_device->CreateDescriptorHeap(&shader_descriptor_heap_desc,
-            IID_PPV_ARGS(&m_sampler_descriptor_heap));
-
+        throw_if_failed(m_device->CreateDescriptorHeap(&shader_descriptor_heap_desc,
+            IID_PPV_ARGS(&m_sampler_descriptor_heap)));
         m_frames.resize(MAX_CONCURRENT_GPU_FRAMES);
         for (uint32_t frame = 0; frame < MAX_CONCURRENT_GPU_FRAMES; frame++)
         {
@@ -415,7 +414,7 @@ namespace lwge::rd
                 .pArgumentDescs = &arg_desc,
                 .NodeMask = 0
             };
-            m_device->CreateCommandSignature(&desc, nullptr, IID_PPV_ARGS(result));
+            throw_if_failed(m_device->CreateCommandSignature(&desc, nullptr, IID_PPV_ARGS(result)));
         };
         create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH,
             sizeof(IndirectDispatchArgs), &m_indirect.dispatch_indirect);

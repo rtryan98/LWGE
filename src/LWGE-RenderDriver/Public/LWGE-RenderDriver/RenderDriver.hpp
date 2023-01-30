@@ -92,13 +92,17 @@ namespace lwge::rd
 
         void internal_destroy_resource_deferred(const SwapchainDestroyPayload& payload) noexcept;
         [[nodiscard]] const Indirect& internal_get_indirect_layouts() const noexcept { return m_indirect; }
-
+        
         [[nodiscard]] NonOwningPtr<ID3D12Device10> get_d3d12device() const noexcept
         { return m_device; }
         [[nodiscard]] NonOwningPtr<IDXGIFactory7> get_dxgi_factory() const noexcept
         { return m_factory; }
         [[nodiscard]] NonOwningPtr<ID3D12CommandQueue> get_direct_queue() const noexcept
         { return m_direct_queue; }
+        [[nodiscard]] NonOwningPtr<ID3D12DescriptorHeap> get_cbv_srv_uav_descriptor_heap() const noexcept
+        { return m_cbv_srv_uav_descriptor_heap; }
+        [[nodiscard]] NonOwningPtr<ID3D12DescriptorHeap> get_sampler_descriptor_heap() const noexcept
+        { return m_sampler_descriptor_heap; }
 
     private:
 

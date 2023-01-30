@@ -17,6 +17,7 @@ namespace lwge
         uint32_t min_width = 256;
         uint32_t min_height = 144;
         std::string title;
+        int64_t(*wnd_proc_callback)(HWND, uint32_t, uint64_t, int64_t) = nullptr;
     };
 
     struct WindowData
@@ -31,6 +32,7 @@ namespace lwge
         bool alive;
         bool fullscreen;
         Input input;
+        int64_t(*wnd_proc_callback)(HWND, uint32_t, uint64_t, int64_t);
     };
 
     class Window

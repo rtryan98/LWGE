@@ -15,6 +15,10 @@ namespace lwge
     LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {
         WindowData* data = reinterpret_cast<WindowData*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        if (data && data->wnd_proc_callback)
+            if (data->wnd_proc_callback(hwnd, msg, wparam, lparam))
+                return true;
+
         switch (msg)
         {
         case WM_ACTIVATE:
@@ -80,7 +84,8 @@ namespace lwge
 
     Window::Window(const WindowDesc& desc)
         : m_data{ .width = desc.width, .height = desc.height, .title = desc.title,
-            .min_width = desc.min_width, .min_height = desc.min_height },
+            .min_width = desc.min_width, .min_height = desc.min_height,
+            .wnd_proc_callback = desc.wnd_proc_callback},
         m_style{ WS_OVERLAPPEDWINDOW | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX }
     {
         RECT wr = {

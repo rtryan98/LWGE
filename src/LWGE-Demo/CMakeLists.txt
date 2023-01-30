@@ -4,4 +4,5 @@ TARGET_LINK_LIBRARIES(${LWGE_DEMO_NAME} PUBLIC
     LWGE-Common
     LWGE-Window
     LWGE-Thread
-    LWGE-RenderDriver)
+    LWGE-RenderDriver
+    LWGE-DearImgui)
