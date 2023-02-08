@@ -16,3 +16,20 @@ ADD_LIBRARY(IMGUI
     ${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_dx12.h)
 TARGET_INCLUDE_DIRECTORIES(IMGUI PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+ADD_LIBRARY(IMGUI-NODE-EDITOR
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/crude_json.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/crude_json.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_bezier_math.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_bezier_math.inl
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_canvas.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_canvas.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_extra_math.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_extra_math.inl
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_node_editor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_node_editor.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_node_editor_api.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_node_editor_internal.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor/imgui_node_editor_internal.inl)
+TARGET_INCLUDE_DIRECTORIES(IMGUI-NODE-EDITOR PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui-node-editor)
+TARGET_LINK_LIBRARIES(IMGUI-NODE-EDITOR PUBLIC IMGUI)
