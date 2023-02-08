@@ -105,9 +105,18 @@ namespace lwge::rd
         { return m_sampler_descriptor_heap; }
 
     private:
-
         void empty_deletion_queues(uint64_t frame) noexcept;
         void create_indirect_command_signatures() noexcept;
+
+        [[nodiscard]] uint32_t acquire_cbv_srv_uav_bindless_index() noexcept;
+        void release_cbv_srv_uav_bindless_index(uint32_t idx) noexcept;
+        [[nodiscard]] uint32_t acquire_sampler_bindless_index() noexcept;
+        void release_sampler_bindless_index(uint32_t idx) noexcept;
+
+        uint64_t calc_cbv_srv_uav_descriptor_cpu_addr(uint32_t idx) const noexcept;
+        uint64_t calc_cbv_srv_uav_descriptor_gpu_addr(uint32_t idx) const noexcept;
+        uint64_t calc_sampler_descriptor_cpu_addr(uint32_t idx) const noexcept;
+        uint64_t calc_sampler_descriptor_gpu_addr(uint32_t idx) const noexcept;
 
     private:
         template<typename T>
@@ -144,7 +153,9 @@ namespace lwge::rd
         OwningPtr<ID3D12CommandQueue> m_copy_queue;
         OwningPtr<ID3D12RootSignature> m_rootsig;
         OwningPtr<ID3D12DescriptorHeap> m_cbv_srv_uav_descriptor_heap;
+        std::vector<uint32_t> m_cbv_srv_uav_descriptor_free_list;
         OwningPtr<ID3D12DescriptorHeap> m_sampler_descriptor_heap;
+        std::vector<uint32_t> m_sampler_descriptor_free_list;
         OwningPtr<ResourcePools> m_pools;
         std::atomic<uint64_t> m_frame_counter;
         Indirect m_indirect;

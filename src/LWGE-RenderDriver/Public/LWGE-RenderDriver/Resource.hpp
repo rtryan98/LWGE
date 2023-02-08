@@ -24,11 +24,25 @@ namespace lwge::rd
         ResourceHeap heap;
     };
 
+    enum class ImageDimension
+    {
+        Unknown = 0,
+        Tex1D = 2,
+        Tex1DArray = 3,
+        Tex2D = 4,
+        Tex2DArray = 5,
+        Tex3D = 8,
+        TexCube = 9,
+        TexCubeArray = 10
+    };
+
     struct ImageDesc
     {
         uint16_t width;
         uint16_t height;
         uint16_t depth;
+        uint16_t mip_levels;
+        ImageDimension dim_type;
         Format format;
     };
 
@@ -120,8 +134,6 @@ namespace lwge::rd
     using BufferHandle = Handle<Buffer, HandleValueType>;
     using ImageHandle = Handle<Image, HandleValueType>;
     using PipelineHandle = Handle<Pipeline, HandleValueType>;
-
-    constexpr static uint16_t IMAGE_HANDLE_SWAPCHAIN = uint16_t(0x4000);
 
     static_assert(sizeof(BufferHandle) == sizeof(void*));
 }

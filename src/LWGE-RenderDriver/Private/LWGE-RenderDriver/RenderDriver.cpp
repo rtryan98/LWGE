@@ -189,6 +189,18 @@ namespace lwge::rd
                     });
             }
         }
+
+        m_cbv_srv_uav_descriptor_free_list.reserve(MAX_CBV_SRV_UAV_DESCRIPTORS);
+        for (int64_t i = MAX_CBV_SRV_UAV_DESCRIPTORS - 1; i >= 0; i--)
+        {
+            m_cbv_srv_uav_descriptor_free_list.push_back(uint32_t(i));
+        }
+
+        m_sampler_descriptor_free_list.reserve(MAX_SAMPLER_DESCRIPTORS);
+        for (int64_t i = MAX_SAMPLER_DESCRIPTORS - 1; i >= 0; i--)
+        {
+            m_sampler_descriptor_free_list.push_back(uint32_t(i));
+        }
     }
 
     NonOwningPtr<FrameContext> RenderDriver::start_frame() noexcept
@@ -285,7 +297,92 @@ namespace lwge::rd
         {
             buffer.address = buffer.resource->GetGPUVirtualAddress();
         }
+
         return handle;
+    }
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC default_srv_desc(const ImageDesc& desc)
+    {
+        D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
+               .Format = (DXGI_FORMAT)desc.format,
+               .ViewDimension = (D3D12_SRV_DIMENSION)desc.dim_type,
+               .Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+        };
+        switch (desc.dim_type)
+        {
+        case ImageDimension::Tex1D:
+        {
+            srv_desc.Texture1D = {
+                .MostDetailedMip = 0,
+                .MipLevels = desc.mip_levels,
+                .ResourceMinLODClamp = 0.0f,
+            };
+            break;
+        }
+        case ImageDimension::Tex1DArray:
+        {
+            srv_desc.Texture1DArray = {
+                .MostDetailedMip = 0,
+                .MipLevels = desc.mip_levels,
+                .FirstArraySlice = 0,
+                .ArraySize = desc.depth,
+                .ResourceMinLODClamp = 0.0f,
+            };
+            break;
+        }
+        case ImageDimension::Tex2D:
+        {
+            srv_desc.Texture2D = {
+                .MostDetailedMip = 0,
+                .MipLevels = desc.mip_levels,
+                .PlaneSlice = 0,
+                .ResourceMinLODClamp = 0.0f,
+            };
+            break;
+        }
+        case ImageDimension::Tex2DArray:
+        {
+            srv_desc.Texture2DArray = {
+                .MostDetailedMip = 0,
+                .MipLevels = desc.mip_levels,
+                .FirstArraySlice = 0,
+                .ArraySize = desc.depth,
+                .PlaneSlice = 0,
+                .ResourceMinLODClamp = 0.0f,
+            };
+            break;
+        }
+        case ImageDimension::Tex3D:
+        {
+            srv_desc.Texture3D = {
+                .MostDetailedMip = 0,
+                .MipLevels = desc.mip_levels,
+                .ResourceMinLODClamp = 0.0f,
+            };
+            break;
+        }
+        case ImageDimension::TexCube:
+        {
+            srv_desc.TextureCube = {
+                .MostDetailedMip = 0,
+                .MipLevels = desc.mip_levels,
+                .ResourceMinLODClamp = 0.0f,
+            };
+            break;
+        }
+        case ImageDimension::TexCubeArray:
+        {
+            srv_desc.TextureCubeArray = {
+                .MostDetailedMip = 0,
+                .MipLevels = desc.mip_levels,
+                .First2DArrayFace = 0,
+                .NumCubes = uint32_t(desc.depth / 6),
+                .ResourceMinLODClamp = 0.0f,
+            };
+            break;
+        }
+        }
+        return srv_desc;
     }
 
     ImageHandle RenderDriver::create_image(const ImageDesc& desc) noexcept
@@ -293,7 +390,33 @@ namespace lwge::rd
         auto handle = m_pools->m_image_pool.insert(0);
         auto& image = m_pools->m_image_pool[handle];
 
-        desc, image;
+        D3D12_HEAP_PROPERTIES heap_props = {
+            .Type = D3D12_HEAP_TYPE_DEFAULT,
+            .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+            .CreationNodeMask = 0,
+            .VisibleNodeMask = 0
+        };
+        D3D12_RESOURCE_DESC1 resource_desc = {
+            .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+            .Alignment = 0,
+            .Width = desc.width,
+            .Height = desc.height,
+            .DepthOrArraySize = desc.depth,
+            .MipLevels = desc.mip_levels,
+            .Format = DXGI_FORMAT(desc.format),
+            .SampleDesc = {.Count = 1, .Quality = 0 },
+            .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+            .Flags = D3D12_RESOURCE_FLAG_NONE,
+            .SamplerFeedbackMipRegion = {}
+        };
+        m_device->CreateCommittedResource3(&heap_props, D3D12_HEAP_FLAG_NONE, &resource_desc,
+            D3D12_BARRIER_LAYOUT_UNDEFINED, nullptr, nullptr, 0, nullptr, IID_PPV_ARGS(&image.resource));
+
+        auto srv = acquire_cbv_srv_uav_bindless_index();
+        D3D12_CPU_DESCRIPTOR_HANDLE srv_handle = { .ptr = calc_cbv_srv_uav_descriptor_cpu_addr(srv) };
+        auto srv_desc = default_srv_desc(desc);
+        m_device->CreateShaderResourceView(image.resource, &srv_desc, srv_handle);
 
         return handle;
     }
@@ -317,11 +440,6 @@ namespace lwge::rd
 
     const Image& RenderDriver::get_image_info(ImageHandle img) const noexcept
     {
-        auto hv = img.get_underlying_value();
-        if (hv.flags & IMAGE_HANDLE_SWAPCHAIN)
-        {
-
-        }
         return m_pools->m_image_pool.at(img);
     }
 
@@ -426,5 +544,57 @@ namespace lwge::rd
             sizeof(DrawIndexedIndirectArgs), &m_indirect.draw_indexed_indirect);
         create_signature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH,
             sizeof(DispatchMeshIndirectArgs), &m_indirect.dispatch_mesh_indirect);
+    }
+
+    uint32_t RenderDriver::acquire_cbv_srv_uav_bindless_index() noexcept
+    {
+        auto idx = m_cbv_srv_uav_descriptor_free_list.back();
+        m_cbv_srv_uav_descriptor_free_list.pop_back();
+        return idx;
+    }
+
+    void RenderDriver::release_cbv_srv_uav_bindless_index(uint32_t idx) noexcept
+    {
+        m_cbv_srv_uav_descriptor_free_list.push_back(idx);
+    }
+
+    uint32_t RenderDriver::acquire_sampler_bindless_index() noexcept
+    {
+        auto idx = m_sampler_descriptor_free_list.back();
+        m_sampler_descriptor_free_list.pop_back();
+        return idx;
+    }
+
+    void RenderDriver::release_sampler_bindless_index(uint32_t idx) noexcept
+    {
+        m_sampler_descriptor_free_list.push_back(idx);
+    }
+
+    uint64_t RenderDriver::calc_cbv_srv_uav_descriptor_cpu_addr(uint32_t idx) const noexcept
+    {
+        auto incr = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        auto addr = m_cbv_srv_uav_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+        return addr.ptr + (idx * incr);
+    }
+
+    uint64_t RenderDriver::calc_cbv_srv_uav_descriptor_gpu_addr(uint32_t idx) const noexcept
+    {
+        auto incr = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        auto addr = m_cbv_srv_uav_descriptor_heap->GetGPUDescriptorHandleForHeapStart();
+        return addr.ptr + (idx * incr);
+    }
+
+    uint64_t RenderDriver::calc_sampler_descriptor_cpu_addr(uint32_t idx) const noexcept
+    {
+        auto incr = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+        auto addr = m_cbv_srv_uav_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+        return addr.ptr + (idx * incr);
+    }
+
+    uint64_t RenderDriver::calc_sampler_descriptor_gpu_addr(uint32_t idx) const noexcept
+    {
+        auto incr = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+        auto addr = m_cbv_srv_uav_descriptor_heap->GetGPUDescriptorHandleForHeapStart();
+        return addr.ptr + (idx * incr);
     }
 }
