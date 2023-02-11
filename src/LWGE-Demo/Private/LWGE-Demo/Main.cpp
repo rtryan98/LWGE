@@ -6,9 +6,8 @@
 #include <LWGE-DearImgui/ImguiImpl.hpp>
 
 #include <memory>
-#include <imgui.h>
 
-enum DXGI_FORMAT : int32_t;
+#include "GUI.hpp"
 
 void transition_swapchain_to_render_target_state(
     lwge::rd::GraphicsCommandList* cmd,
@@ -86,22 +85,18 @@ void transition_swapchain_to_present_state(
 }
 
 void render_frame(
-    lwge::thread::JobSystem* js,
     lwge::rd::GraphicsCommandList* cmd,
+    GUI* gui,
     lwge::rd::Swapchain* sc,
-    uint32_t sc_img_index,
-    std::atomic<uint64_t>* ui_pending)
+    uint32_t sc_img_index)
 {
     using namespace lwge;
 
     transition_swapchain_to_render_target_state(
         cmd, sc, sc_img_index);
-    std::array<float, 4> rgba = { 0.25f, 0.5f, 0.25f, 1.0f };
+    std::array<float, 4> rgba = { 0.0f, 0.0f, 0.0f, 1.0f };
     cmd->clear_render_target(sc, sc_img_index, rgba);
-
-    js->await_counter(ui_pending, 0);
-    dearimgui::render_draw_data(cmd);
-
+    gui->render(cmd);
     transition_swapchain_to_present_state(
         cmd, sc, sc_img_index);
 }
@@ -115,8 +110,8 @@ int32_t main(int32_t, const char*)
         .thread_count = js.get_worker_thread_cnt() + 1
     };
     WindowDesc win_desc = {
-        .width = 1280,
-        .height = 720,
+        .width = 1920,
+        .height = 1080,
         .title = "LWGE-Demo",
         .wnd_proc_callback = dearimgui::get_imgui_wnd_proc()
     };
@@ -126,8 +121,7 @@ int32_t main(int32_t, const char*)
         .vsync = false
     };
     auto sc = std::unique_ptr<rd::Swapchain>(rd->create_swapchain(sc_desc, window));
-
-    dearimgui::init_imgui(&window, rd.get());
+    auto gui = std::make_unique<GUI>(&window, rd.get());
 
     while (window.get_window_data().alive)
     {
@@ -139,27 +133,17 @@ int32_t main(int32_t, const char*)
         {
             window.toggle_borderless_fullscreen();
         }
-        std::atomic<uint64_t> frame_job_pending = 1;
-        std::atomic<uint64_t> ui_pending = 1;
-        js.schedule([&js, &sc, &rd, frame, &ui_pending, &frame_job_pending]() {
-            auto sc_img_index = sc->acquire_next_image();
-            auto cmd = rd->get_graphics_cmdlist(frame, thread::JobSystem::get_thread_idx());
-            cmd->begin_recording();
-            render_frame(&js, cmd, sc.get(), sc_img_index, &ui_pending);
-            cmd->end_recording();
-            rd->submit(cmd);
-            sc->present();
-            rd->end_frame(frame);
-            frame_job_pending.store(0);
-            });
-        dearimgui::new_frame();
-        bool show_demo_window = true;
-        ImGui::ShowDemoWindow(&show_demo_window);
-        ImGui::Render();
-        ui_pending.store(0);
-        js.await_counter(&frame_job_pending, 0);
+        gui->process();
+
+        auto sc_img_index = sc->acquire_next_image();
+        auto cmd = rd->get_graphics_cmdlist(frame, thread::JobSystem::get_thread_idx());
+        cmd->begin_recording();
+        render_frame(cmd, gui.get(), sc.get(), sc_img_index);
+        cmd->end_recording();
+        rd->submit(cmd);
+        sc->present();
+        rd->end_frame(frame);
     }
-    dearimgui::shutdown_imgui();
     js.stop();
     return 0;
 }

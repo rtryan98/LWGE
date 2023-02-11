@@ -51,6 +51,8 @@ MACRO(MAKE_LWGE_APPLICATION TARGET_NAME)
             "/wd26812" # The enum type 'type-name' is unscoped. Prefer 'enum class' over 'enum'
             "/WX" "/W4" "/MP"
             )
+        SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+            VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
     ENDIF()
 ENDMACRO()
 
