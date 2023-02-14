@@ -4,6 +4,8 @@
 #include <LWGE-Common/Pointer.hpp>
 #include <LWGE-ImageFormat/Format.hpp>
 
+#include <array>
+
 struct ID3D12Resource2;
 struct ID3D12PipelineState;
 
@@ -60,6 +62,39 @@ namespace lwge::rd
         RayTracing
     };
 
+    enum class PrimitiveTopology
+    {
+        Point = 1,
+        Line = 2,
+        Triangle = 3,
+        Patch = 4
+    };
+
+    enum class StencilOp
+    {
+        Keep = 1,
+        Zero = 2,
+        Replace = 3,
+        IncrSat = 4,
+        DecrSat = 5,
+        Invert = 6,
+        Incr = 7,
+        Decr = 8
+    };
+
+    enum class CompareFunc
+    {
+        None = 0,
+        Never = 1,
+        Less = 2,
+        Equal = 3,
+        LessEqual = 4,
+        Greater = 5,
+        NotEqual = 6,
+        GreaterEqual = 7,
+        Always = 8
+    };
+
     struct GraphicsPipelineDesc
     {
         PipelineType type;
@@ -73,14 +108,30 @@ namespace lwge::rd
                 Shader geometry;
                 Shader pixel;
             } graphics_shaders;
-            struct
-            {
-                Shader amplification;
-                Shader mesh;
-                Shader pixel;
-            } mesh_shaders;
         };
+        PrimitiveTopology topology;
+        struct DepthStencilState
+        {
+            struct StencilOps
+            {
+                StencilOp fail;
+                StencilOp depth_fail;
+                StencilOp pass;
+                CompareFunc func;
+            };
 
+            Format ds_format;
+            bool depth_enable;
+            bool enable_depth_write;
+            CompareFunc depth_compare_func;
+            bool stencil_enable;
+            uint8_t stencil_read_mask;
+            uint8_t stencil_write_mask;
+            StencilOps stencil_front_face;
+            StencilOps stencil_back_face;
+        } ds_state;
+        uint32_t render_target_count;
+        std::array<Format, 8> render_target_formats;
     };
 
     struct ComputePipelineDesc

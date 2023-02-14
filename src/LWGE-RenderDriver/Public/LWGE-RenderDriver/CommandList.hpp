@@ -296,5 +296,9 @@ namespace lwge::rd
         void set_render_target(Swapchain* swapchain, uint32_t image_index) noexcept;
         void set_render_targets(std::span<ImageHandle> color_targets, ImageHandle depth_stencil) noexcept;
         void set_render_targets(std::span<ImageHandle> color_targets) noexcept;
+
+        void set_viewport(float_t x, float_t y, float_t width, float_t height,
+            float_t min_depth, float_t max_depth) noexcept;
+        void set_scissor(int32_t left, int32_t top, int32_t right, int32_t bottom) noexcept;
     };
 }

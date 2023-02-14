@@ -423,8 +423,65 @@ namespace lwge::rd
 
     PipelineHandle RenderDriver::create_pipeline(const GraphicsPipelineDesc& desc) noexcept
     {
-        desc;
-        return PipelineHandle();
+        auto handle = m_pools->m_pipeline_pool.insert(0);
+        auto& pipe = m_pools->m_pipeline_pool[handle];
+
+        std::array<DXGI_FORMAT, 8> rtvs = {};
+
+        switch (desc.type)
+        {
+        case PipelineType::Graphics:
+        {
+            D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {
+                .pRootSignature = m_rootsig,
+                .VS = {
+                    .pShaderBytecode = desc.graphics_shaders.vertex.bytecode,
+                    .BytecodeLength = desc.graphics_shaders.vertex.size
+                },
+                .PS = {
+                    .pShaderBytecode = desc.graphics_shaders.pixel.bytecode,
+                    .BytecodeLength = desc.graphics_shaders.pixel.size
+                },
+                .DS = {
+                    .pShaderBytecode = desc.graphics_shaders.domain.bytecode,
+                    .BytecodeLength = desc.graphics_shaders.domain.size
+                },
+                .HS = {
+                    .pShaderBytecode = desc.graphics_shaders.hull.bytecode,
+                    .BytecodeLength = desc.graphics_shaders.hull.size
+                },
+                .GS = {
+                    .pShaderBytecode = desc.graphics_shaders.geometry.bytecode,
+                    .BytecodeLength = desc.graphics_shaders.geometry.size
+                },
+                .BlendState = {
+                    .AlphaToCoverageEnable = false,
+                    .IndependentBlendEnable = false,
+
+                },
+                .SampleMask = 0,
+                .RasterizerState = {},
+                .DepthStencilState = {
+
+                },
+                .InputLayout = { .NumElements = 0 },
+                .IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
+                .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE(desc.topology),
+                .NumRenderTargets = 0,
+                .RTVFormats = {},
+                .DSVFormat = DXGI_FORMAT(desc.ds_state.ds_format),
+                .SampleDesc = { .Count = 1, .Quality = 0 },
+                .NodeMask = 0,
+                .CachedPSO = {},
+                .Flags = D3D12_PIPELINE_STATE_FLAG_NONE
+            };
+            break;
+        }
+        default:
+            std::unreachable();
+        }
+
+        return handle;
     }
 
     PipelineHandle RenderDriver::create_pipeline(const ComputePipelineDesc& desc) noexcept

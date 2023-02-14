@@ -6,6 +6,8 @@
 #include <concepts>
 #include <span>
 
+#include <intrin.h>
+
 namespace lwge
 {
     [[nodiscard]] constexpr auto get_quad_tree_element_count_by_level(uint64_t levels) noexcept
@@ -146,15 +148,14 @@ namespace lwge
 
             auto current_level_start_index = get_level_start_index_from_element_index(current_index);
             auto level_index = get_level_index_from_level_start_index(current_level_start_index);
-            auto level_subdir_size = get_size_of_level(level_index);
-
-            auto start_relative_index = get_level_relative_index(index);
+            auto start_relative_index = uint32_t(get_level_relative_index(index));
 
             Position result = {
-                .x = 0,
-                .y = 0,
+                .x = _pext_u32(start_relative_index, 0x55555555u),
+                .y = _pext_u32(start_relative_index, 0xAAAAAAAAu),
                 .level = level_index
             };
+
             return result;
         }
 

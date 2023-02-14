@@ -301,4 +301,29 @@ namespace lwge::rd
         }
         m_cmd->OMSetRenderTargets(uint32_t(color_targets.size()), rts.data(), false, nullptr);
     }
+
+    void GraphicsCommandList::set_viewport(float_t x, float_t y, float_t width, float_t height,
+        float_t min_depth, float_t max_depth) noexcept
+    {
+        D3D12_VIEWPORT vp = {
+            .TopLeftX = x,
+            .TopLeftY = y,
+            .Width = width,
+            .Height = height,
+            .MinDepth = min_depth,
+            .MaxDepth = max_depth
+        };
+        m_cmd->RSSetViewports(1, &vp);
+    }
+
+    void GraphicsCommandList::set_scissor(int32_t left, int32_t top, int32_t right, int32_t bottom) noexcept
+    {
+        D3D12_RECT rect = {
+            .left = LONG(left),
+            .top = LONG(top),
+            .right = LONG(right),
+            .bottom = LONG(bottom)
+        };
+        m_cmd->RSSetScissorRects(1, &rect);
+    }
 }
