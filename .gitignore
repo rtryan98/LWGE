@@ -1,5 +1,5 @@
 [Bb]uild/*
 thirdparty/d3d12agilitysdk/*
 thirdparty/DirectXShaderCompiler/*
-res/*.bin
+res/**/*.bin
 imgui.ini
