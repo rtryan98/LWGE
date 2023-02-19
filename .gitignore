@@ -2,4 +2,5 @@
 thirdparty/d3d12agilitysdk/*
 thirdparty/DirectXShaderCompiler/*
 res/**/*.bin
+NodeEditor.json*
 imgui.ini
